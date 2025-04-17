@@ -1,13 +1,10 @@
 <script lang="ts">
-	// No theme store import needed
-	// import { Sun, Moon } from 'lucide-svelte'; // Icons no longer needed
 	import { page } from '$app/stores';
 </script>
 
 <header class="sticky top-0 z-40 w-full border-b border-gray-700 bg-gray-900/95 backdrop-blur">
 	<div class="container mx-auto flex h-16 items-center px-4 sm:px-6 lg:px-8">
 		<a href="/" class="mr-6 flex items-center space-x-2">
-			<!-- Placeholder Logo -->
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
 				viewBox="0 0 24 24"
