@@ -42,9 +42,6 @@
 	},
 	"dependencies": {
 		"@libsql/client": "^0.14.0",
-		"clsx": "^2.1.1",
-		"drizzle-orm": "^0.40.0",
-		"lucide-svelte": "^0.488.0",
-		"tailwind-merge": "^3.2.0"
+		"drizzle-orm": "^0.40.0"
 	}
 }
