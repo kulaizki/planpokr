@@ -39,7 +39,7 @@
 		</nav>
 		<div class="flex items-center space-x-4">
 			<button
-				class="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-md border border-blue-600 bg-transparent px-4 py-2 text-sm font-medium text-blue-400 transition-colors hover:bg-blue-600 hover:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 disabled:pointer-events-none disabled:opacity-50"
+				class="hover:cursor-pointer inline-flex h-9 items-center justify-center whitespace-nowrap rounded-md border border-blue-600 bg-transparent px-4 py-2 text-sm font-medium text-blue-400 transition-colors hover:bg-blue-600 hover:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 disabled:pointer-events-none disabled:opacity-50"
 			>
 				Sign In
 			</button>

@@ -6,7 +6,7 @@
 	/>
 </svelte:head>
 
-<section class="container mx-auto grid items-center gap-10 px-4 pb-16 pt-12 sm:px-6 md:py-20 lg:px-8 lg:py-24">
+<section class="container mx-auto grid items-center gap-10 px-4 py-12 sm:px-6 md:py-20 lg:px-8 lg:py-24">
 	<div class="flex max-w-[980px] flex-col items-start gap-4">
 		<h1
 			class="text-4xl font-extrabold leading-tight tracking-tight text-gray-100 sm:text-5xl md:text-6xl lg:text-7xl"
