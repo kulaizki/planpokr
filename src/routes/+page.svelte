@@ -11,7 +11,7 @@
 		<h1
 			class="text-4xl font-extrabold leading-tight tracking-tight text-gray-100 sm:text-5xl md:text-6xl lg:text-7xl"
 		>
-			Streamline Your <span class="text-blue-500">Sprint Planning</span>
+			Revolutionize Your <br/> <span class="text-blue-500">Sprint Planning</span>
 		</h1>
 		<p class="max-w-[700px] text-lg text-gray-300 sm:text-xl">
 			PlanPokr provides a simple and intuitive interface for real-time, collaborative estimation
