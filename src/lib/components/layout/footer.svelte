@@ -35,7 +35,7 @@
 
 {#if show}
   <footer
-    class="py-2 bg-gray-950 border-t border-gray-600 text-white"
+    class="py-2 border-t text-white border-gray-700 bg-gray-900/95 backdrop-blur"
     transition:slideUp|local
   >
     <div class="gap-4 max-w-6xl mx-auto px-6 flex flex-col-reverse md:flex-row justify-between items-center">
@@ -45,7 +45,7 @@
           href="https://fitzsixto.com/"
           target="_blank"
           rel="noopener noreferrer"
-          class="[text-shadow:0_0_8px_rgba(0,242,255,0.6)] bg-gradient-to-r from-sky-300 to-sky-600 bg-clip-text text-transparent font-bold transition ease-in-out duration-200"
+          class="[text-shadow:0_0_8px_rgba(0,242,255,0.4)] bg-gradient-to-r from-blue-300 to-blue-600 bg-clip-text text-transparent font-bold transition ease-in-out duration-200"
         >
           Fitzsixto
         </a>. All rights reserved.
