@@ -68,7 +68,7 @@
 			<div class="flex flex-col items-center sm:flex-row gap-4 mt-4 w-full justify-center md:justify-start">
 				<button
 					on:click={createGame}
-					class="inline-flex h-11 w-full sm:w-auto items-center justify-center rounded-md bg-blue-600 px-8 text-base font-semibold whitespace-nowrap text-white ring-offset-gray-900 transition-colors hover:bg-blue-700 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+					class="hover:cursor-pointer inline-flex h-11 w-full sm:w-auto items-center justify-center rounded-md bg-blue-600 px-8 text-base font-semibold whitespace-nowrap text-white ring-offset-gray-900 transition-colors hover:bg-blue-700 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
 				>
 					Start New Game
 				</button>
