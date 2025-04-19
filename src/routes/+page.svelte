@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { cubicOut } from 'svelte/easing';
-	import { onMount } from 'svelte';
+	import { onMount } from 'svelte'; 
 
 	function createGame() {
 		// Generate a simple unique-ish ID
@@ -9,7 +9,7 @@
 		goto(`/game/${gameId}`);
 	}
 
-	let show: boolean = false;
+	let show: boolean = false; 
 
 	function blurFly(
 		node: HTMLElement,
