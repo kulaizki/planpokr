@@ -157,18 +157,18 @@ export function createGameStore(gameId: string, playerName: string) {
       await refreshGameState();
     });
 
-    // Track our own online status
-    channel.track({
-      player_id: playerId,
-      name: playerName,
-      online_at: new Date().toISOString(),
-    });
-
     // Subscribe to the channel
     channel.subscribe((status) => {
       console.log(`Channel status: ${status}`);
       if (status === 'SUBSCRIBED') {
         connectionStatus.set('connected');
+        
+        // Only track presence after subscription is complete
+        channel.track({
+          player_id: playerId,
+          name: playerName,
+          online_at: new Date().toISOString(),
+        });
       } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
         connectionStatus.set('disconnected');
       }
