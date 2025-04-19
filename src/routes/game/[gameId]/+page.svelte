@@ -17,13 +17,6 @@
 	let copyButtonText = 'Copy Invite Link';
 	let hasJoined = false;
 	
-	// Initialize reactive stores - start with null, will be populated once the game is joined
-	let gameStore: ReturnType<typeof createGameStore> | null = null;
-	let currentVote: Writable<VoteValue> | null = null;
-	let status: Writable<ConnectionStatusType> = writable('connecting'); // Initialize with a default store
-	let gameStateStore: Writable<GameState> | null = null;
-	let unsubscribeFromGame: (() => void) | null = null;
-	
 	// Default empty state ensures gameState is always a valid GameState object
 	const emptyGameState: GameState = {
 		id: null,
@@ -36,59 +29,66 @@
 		allVoted: false
 	};
 	
+	// Initialize reactive stores - start with null, will be populated once the game is joined
+	let gameStore: ReturnType<typeof createGameStore> | null = null;
+	let currentVote: Writable<VoteValue> = writable(null);
+	let status: Writable<ConnectionStatusType> = writable('connecting'); // Initialize with a default store
+	let gameStateStore: Writable<GameState> = writable(emptyGameState);
+	let unsubscribeFromGame: (() => void) | null = null;
+	
 	// Reactive variables derived from the stores
-	$: gameState: GameState = gameStateStore ? $gameStateStore : emptyGameState; // Ensure gameState is always GameState
+	$: gameState = $gameStateStore;
 	$: connectionStatus = $status;
-	$: playersCount = gameState.players.length; // No optional chaining needed now
-	$: currentVoteValue = currentVote ? $currentVote : null;
-	$: canReveal = Object.keys(gameState.votes).length > 0; // No optional chaining needed now
+	$: playersCount = gameState.players.length;
+	$: currentVoteValue = $currentVote;
+	$: canReveal = Object.keys(gameState.votes).length > 0;
+
+	// Reset vote selection when a new story starts or votes are revealed
+	$: if (gameState.currentStory === '' || gameState.revealed === false) {
+		currentVote.set(null);
+	}
 
 	// Join the game with the provided name
-	function joinGame() {
+	function joinGame(): void {
 		if (!nameInput.trim()) return;
 		
 		const gameInstance = initializeGame(gameId, nameInput);
 		gameStore = gameInstance.gameStore;
 		currentVote = gameInstance.currentVote;
-		status = gameInstance.status; // Assign the store returned by the service
+		status = gameInstance.status;
 		gameStateStore = gameInstance.gameStateStore;
 		unsubscribeFromGame = gameInstance.unsubscribe;
 		
 		hasJoined = true;
 	}
 
-	// Handle copying the game link
-	function handleCopyLink() {
-		copyGameLink(text => {
-			copyButtonText = text;
-		});
+	async function handleCopyLink(): Promise<void> {
+		await copyGameLink(setButtonText);
 	}
 
-	// Handle voting
-	function onVote(vote: string | number) {
+	function setButtonText(text: string): void {
+		copyButtonText = text;
+	}
+
+	function onVote(vote: string | number): void {
 		if (gameStore && currentVote) {
 			handleVote(gameStore, currentVote, vote);
 		}
 	}
 
 	// Handle setting a new story
-	function onSetStory() {
+	function onSetStory(): void {
 		if (gameStore) {
 			storyInput = handleSetStory(gameStore, storyInput);
 		}
 	}
 
 	// Handle moving to the next story
-	function onNextStory() {
+	function onNextStory(): void {
 		if (gameStore) {
 			storyInput = handleNextStory(gameStore);
-		}
-	}
-
-	// Reveal the votes
-	function onReveal() {
-		if (gameStore) {
-			gameStore.reveal(); // Call reveal without arguments
+			// Reset the current vote when moving to a new story
+			currentVote.set(null);
 		}
 	}
 
@@ -123,7 +123,7 @@
 	{:else}
 		<div class="game-content">
 			<div class="mb-4">
-				<ConnectionStatus status={$status} />
+				<ConnectionStatus status={connectionStatus} />
 			</div>
 			
 			<div class="flex justify-between items-center mb-6">

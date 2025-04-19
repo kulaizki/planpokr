@@ -4,19 +4,38 @@ import type { ConnectionStatus, GameState, VoteValue } from '$lib/types/game';
 
 /**
  * Copies the current game link to the clipboard
- * @returns A promise that resolves when the link is copied
+ * @param setButtonText Function to update button text
  */
-export function copyGameLink(setButtonText: (text: string) => void): void {
-  navigator.clipboard.writeText(window.location.href)
-    .then(() => {
-      setButtonText('Copied!');
-      setTimeout(() => { setButtonText('Copy Invite Link'); }, 2000);
-    })
-    .catch((err: unknown) => {
-      console.error('Failed to copy link:', err);
+export async function copyGameLink(setButtonText: (text: string) => void): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(window.location.href);
+    setButtonText('Copied!');
+    setTimeout(() => { setButtonText('Copy Invite Link'); }, 2000);
+  } catch (err) {
+    console.error('Failed to copy link:', err);
+    // Try fallback method for browsers that don't support clipboard API
+    const textarea = document.createElement('textarea');
+    textarea.value = window.location.href;
+    textarea.style.position = 'fixed';  // Prevent scrolling to bottom
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    
+    try {
+      const successful = document.execCommand('copy');
+      if (successful) {
+        setButtonText('Copied!');
+      } else {
+        setButtonText('Failed to copy');
+      }
+    } catch (err) {
+      console.error('Fallback copy failed:', err);
       setButtonText('Failed to copy');
-      setTimeout(() => { setButtonText('Copy Invite Link'); }, 2000);
-    });
+    }
+    
+    document.body.removeChild(textarea);
+    setTimeout(() => { setButtonText('Copy Invite Link'); }, 2000);
+  }
 }
 
 /**
@@ -103,8 +122,10 @@ export function handleSetStory(
 /**
  * Handle moving to the next story
  * @param gameStore The game store instance
+ * @returns Empty string to clear the story input
  */
 export function handleNextStory(gameStore: ReturnType<typeof createGameStore>): string {
-  gameStore.setStory('');
+  gameStore.resetVotes(); // Reset all votes first
+  gameStore.setStory(''); // Then set empty story
   return '';
 } 

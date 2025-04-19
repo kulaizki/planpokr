@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 import { supabase } from '$lib/supabase/client';
-import type { ConnectionStatus, GameState, PlayerInfo, VoteValue } from '$lib/types/game';
+import type { ConnectionStatus, GameState, VoteValue } from '$lib/types/game';
 
 export function createGameStore(gameId: string, playerName: string) {
   // Generate a unique player ID
@@ -31,9 +31,9 @@ export function createGameStore(gameId: string, playerName: string) {
         .from('games')
         .select('id') // Select only id to check existence
         .eq('id', gameId)
-        .maybeSingle(); // Use maybeSingle to handle game not found gracefully
+        .maybeSingle(); 
         
-      if (gameError && gameError.code !== 'PGRST116') { // Ignore 'PGRST116' (resource not found)
+      if (gameError && gameError.code !== 'PGRST116') { 
         throw gameError;
       }
       
@@ -436,6 +436,59 @@ export function createGameStore(gameId: string, playerName: string) {
     }
   }
   
+  /**
+   * Reset all votes for the current game
+   * This should be called when starting a new story
+   */
+  async function resetVotes() {
+    try {
+      // First update the game state to set revealed to false
+      const { error: gameError } = await supabase
+        .from('games')
+        .update({ 
+          revealed: false 
+        })
+        .eq('id', gameId);
+      
+      if (gameError) throw gameError;
+      
+      // Reset all player voted status
+      const { error: playerError } = await supabase
+        .from('players')
+        .update({ voted: false })
+        .eq('game_id', gameId);
+      
+      if (playerError) throw playerError;
+      
+      // Reset all votes to null
+      const { error: voteError } = await supabase
+        .from('votes')
+        .update({ value: null })
+        .eq('game_id', gameId);
+      
+      if (voteError) throw voteError;
+      
+      // Broadcast the reset event to all clients
+      const channel = supabase.channel(`game:${gameId}`);
+      channel.send({
+        type: 'broadcast',
+        event: 'reset_votes',
+        payload: {}
+      });
+      
+      // Update local state
+      gameState.update(state => ({
+        ...state,
+        votes: {},
+        revealed: false,
+        allVoted: false
+      }));
+      
+    } catch (error) {
+      console.error('Error resetting votes:', error);
+    }
+  }
+  
   // Initialize
   initializeGame();
   
@@ -449,6 +502,7 @@ export function createGameStore(gameId: string, playerName: string) {
     vote,
     reveal,
     setStory,
-    leaveGame
+    leaveGame,
+    resetVotes
   };
 } 
