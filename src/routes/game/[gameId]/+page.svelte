@@ -72,12 +72,6 @@
 		}
 	}
 
-	function handleReveal() {
-		if (gameStore) {
-			gameStore.reveal();
-		}
-	}
-
 	function handleSetStory() {
 		if (gameStore && storyInput.trim()) {
 			gameStore.setStory(storyInput.trim());
@@ -89,6 +83,7 @@
 		if (gameStore) {
 			gameStore.setStory('');
 			storyInput = '';
+			currentVote.set(null);
 		}
 	}
 </script>
@@ -131,7 +126,6 @@
 				currentVote={$currentVote}
 				allVoted={$gameStateStore.allVoted}
 				onVote={handleVote}
-				onReveal={handleReveal}
 				onNextStory={handleNextStory}
 			/>
 		</div>

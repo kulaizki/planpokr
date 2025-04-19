@@ -111,8 +111,10 @@ export function createGameStore(gameId: string, playerName: string) {
     });
 
     // Track player presence
-    channel.on('presence', { event: 'join' }, ({ newPresences }) => {
+    channel.on('presence', { event: 'join' }, async ({ newPresences }) => {
       console.log('Players joined:', newPresences);
+      // Explicitly refresh player list on join for faster UI update
+      await refreshPlayers(); 
     }).on('presence', { event: 'leave' }, ({ leftPresences }) => {
       console.log('Players left:', leftPresences);
       // Remove players who left
