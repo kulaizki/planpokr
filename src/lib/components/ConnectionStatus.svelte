@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ConnectionStatus } from '$lib/types';
+	import type { ConnectionStatus } from '$lib/types/game';
 	
 	export let status: ConnectionStatus;
 </script>

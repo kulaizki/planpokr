@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { PlayerInfo, VoteValue } from '$lib/types';
+	import type { PlayerInfo, VoteValue } from '$lib/types/game';
 	
 	export let revealed: boolean = false;
 	export let votes: { [playerId: string]: string | number | null } = {};

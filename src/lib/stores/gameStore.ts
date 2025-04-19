@@ -1,32 +1,13 @@
 import { writable } from 'svelte/store';
 import { supabase } from '$lib/supabase/client';
-
-interface PlayerInfo {
-  id: string;
-  name: string;
-  voted: boolean;
-}
-
-interface ClientGameState {
-  id: string | null;
-  players: PlayerInfo[];
-  currentStory: string;
-  votes: { [playerId: string]: string | number | null };
-  revealed: boolean;
-  myName: string;
-  myId: string | null;
-  allVoted: boolean;
-}
-
-type VoteValue = string | number | null;
-type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
+import type { ConnectionStatus, GameState, PlayerInfo, VoteValue } from '$lib/types/game';
 
 export function createGameStore(gameId: string, playerName: string) {
   // Generate a unique player ID
   const playerId = `player_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   
   // Create a writable store with initial state
-  const gameState = writable<ClientGameState>({
+  const gameState = writable<GameState>({
     id: gameId,
     players: [],
     currentStory: 'No story set yet.',

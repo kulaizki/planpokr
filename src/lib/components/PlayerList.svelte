@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { PlayerInfo } from '$lib/types';
+	import type { PlayerInfo } from '$lib/types/game';
 
 	export let players: PlayerInfo[] = [];
 	export let myId: string | null = null;
