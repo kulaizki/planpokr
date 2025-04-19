@@ -4,6 +4,7 @@ import type { IncomingMessage } from 'node:http';
 import type { Socket } from 'node:net';
 import type { Buffer } from 'node:buffer';
 import { type GameState, type Player, games } from '$lib/server/game_state'; 
+import { handleUpgrade } from '$lib/server/websocket'; // Import the handler
 
 console.log('Setting up WebSocket server...');
 
@@ -128,48 +129,46 @@ export function broadcast(gameId: string, message: BroadcastMessage, senderWs?: 
     });
 }
 
-// SvelteKit handle hook
-export const handle: Handle = async ({ event, resolve }) => {
-    console.log('[handle] Hook executing...');
+// Keep track if the listener has been attached to avoid duplicates during HMR
+let upgradeListenerAttached = false;
 
-    // @ts-expect-error - Use expect-error and check if platform type needs adjustment
+export const handle: Handle = async ({ event, resolve }) => {
+    // @ts-expect-error - Accessing platform internals for Vite server
     const viteDevServer = event.platform?.viteDevServer ?? globalThis.viteDevServer;
 
-    console.log('[handle] Found viteDevServer:', !!viteDevServer);
-
-     if (viteDevServer && viteDevServer.httpServer) {
-        console.log('[handle] Found httpServer:', !!viteDevServer.httpServer);
+    if (viteDevServer && viteDevServer.httpServer) {
         const httpServer = viteDevServer.httpServer;
 
-        // Add listener only once
-        if (!httpServer.listenerCount('upgrade')) {
-             console.log('[handle] Attaching WebSocket upgrade listener...');
+        if (!upgradeListenerAttached) {
+            console.log('[handle] Attaching WebSocket upgrade listener...');
             httpServer.on('upgrade', (request: IncomingMessage, socket: Socket, head: Buffer) => {
-                 console.log('[handle] Upgrade event received for path:', request.url);
-                 const url = new URL(request.url || '', `http://${request.headers.host}`);
-                if (url.pathname.startsWith('/ws/game/')) {
-                     console.log('[handle] Handling upgrade for game path...');
-                    wss.handleUpgrade(request, socket, head, (ws: Ws) => {
-                        console.log('[handle] WebSocket handshake complete, emitting connection.');
-                        wss.emit('connection', ws, request);
-                    });
-                 } else {
-                     console.log('[handle] Upgrade for non-game path, destroying socket.');
-                     socket.destroy();
-                 }
-            });
-            console.log('[handle] WebSocket upgrade listener attached.');
-        } else {
-             console.log('[handle] Upgrade listener already attached.');
-        }
-     } else if (import.meta.env.PROD) {
-         console.warn('[handle] HTTP server not available via event.platform.viteDevServer. WebSockets may not work in this production environment without specific adapter configuration.');
-     } else {
-         console.log('[handle] viteDevServer or httpServer not found in dev environment.');
-     }
+                const url = new URL(request.url || '', `http://${request.headers.host}`);
 
-    console.log('[handle] Resolving event...');
+                // Only handle upgrades for our specific websocket path
+                if (url.pathname.startsWith('/ws/game/')) {
+                    console.log(`[handle] Upgrade request for ${url.pathname}, attempting to handle...`);
+                    try {
+                         handleUpgrade(request, socket, head); // Delegate to our module
+                    } catch (err) {
+                        console.error('[handle] Error during handleUpgrade call:', err);
+                        socket.destroy();
+                    }
+                } else {
+                    // Important: Destroy socket for paths not handled by our WS server
+                    // console.log(`[handle] Upgrade for ${url.pathname} not handled, destroying socket.`);
+                    socket.destroy();
+                }
+            });
+            upgradeListenerAttached = true;
+            console.log('[handle] WebSocket upgrade listener attached.');
+        }
+    } else if (import.meta.env.PROD) {
+        console.warn('[handle] HTTP server not available. WebSockets may not work in production without specific adapter/server setup.');
+    }
+
     return resolve(event);
 };
+
+console.log('Server hook initialized.'); // Changed log message
 
 console.log('WebSocket server setup complete.'); 
