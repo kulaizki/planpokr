@@ -65,6 +65,11 @@
 		};
 	});
 
+	// Reactive statement to reset local vote selection when votes are reset globally
+	$: if (!$gameStateStore.revealed) {
+		currentVote.set(null);
+	}
+
 	function handleVote(vote: string | number) {
 		if (gameStore) {
 			currentVote.set(vote);
