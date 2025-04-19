@@ -83,17 +83,28 @@ PlanPokr uses three main tables in Supabase:
    - `game_id`: reference to the game
    - `value`: the player's vote value (null if not voted)
 
+## Server-Side Logic
+
+The real-time functionality is powered by Supabase Realtime subscriptions and broadcasts, managed within the `src/lib/server` directory. This includes:
+- **WebSocket Handling (`websocket.ts`)**: Manages WebSocket connections, message broadcasting, and coordinates game state updates with Supabase.
+- **Game State Management (`game_state.ts`)**: Holds the server-side representation of game states, including players and votes.
+- **Supabase Server Client (`supabase.ts`)**: Initializes the Supabase client for server-side operations.
+
 ## Project Structure
 
 ```
 src/
 ├── lib/
 │   ├── components/     # UI components
-│   ├── services/       # Service layer
-│   ├── stores/         # State management
-│   ├── supabase/       # Supabase client
+│   ├── server/         # Server-side logic (Supabase/WebSocket)
+│   │   ├── supabase.ts
+│   │   ├── websocket.ts
+│   │   └── game_state.ts
+│   ├── services/       # Client-side service layer
+│   ├── stores/         # Client-side state management
+│   ├── supabase/       # Client-side Supabase client
 │   ├── types/          # TypeScript types
-│   └── realtime.ts     # WebSocket communication
+│   └── realtime.ts     # Deprecated client-side WebSocket (use server logic)
 ├── routes/             # SvelteKit routes
 └── app.html            # SvelteKit app shell
 ```
