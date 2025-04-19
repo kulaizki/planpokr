@@ -12,7 +12,7 @@
 		goto(`/game/${gameId}`);
 	}
 
-	let show: boolean = false;
+	let show: boolean = false; 
 
 	function blurFly(
 		node: HTMLElement,
@@ -29,7 +29,7 @@
 	} {
 		return {
 			delay: params.delay || 0,
-			duration: params.duration || 1000,
+			duration: params.duration || 800, // Slightly faster
 			easing: params.easing || cubicOut,
 			css: (t: number) => `
         opacity: ${t};
@@ -39,12 +39,14 @@
 	}
 
 	onMount(() => {
-		if (!$initialLoadComplete) {
-			initialLoadComplete.set(true);
-			show = true; 
-		} else {
-			show = true; 
-		}
+		setTimeout(() => {
+			if (!$initialLoadComplete) {
+				initialLoadComplete.set(true);
+				show = true; 
+			} else {
+				show = true; 
+			}
+		}, 50); 
 	});
 </script>
 
