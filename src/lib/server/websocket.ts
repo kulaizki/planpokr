@@ -2,17 +2,15 @@ import Ws, { WebSocketServer } from 'ws';
 import type { IncomingMessage } from 'node:http';
 import type { Socket } from 'node:net';
 import type { Buffer } from 'node:buffer';
-import { games, type GameState, type Player } from '$lib/server/game_state'; // Assuming game_state is in the same dir
+import { games, type GameState, type Player } from './game_state'; 
 
 console.log('Initialising WebSocket Server Module...');
 
-// Define a type for messages we broadcast
 export interface BroadcastMessage {
     type: string;
     payload?: unknown;
 }
 
-// Use a symbol for a unique key on globalThis
 const WEBSOCKET_SERVER_KEY = Symbol.for('app.websocketServer');
 
 interface GlobalWithWss {
@@ -26,8 +24,11 @@ function createWss(): WebSocketServer {
     wss.on('connection', (ws: Ws, request: IncomingMessage) => {
         console.log('[WSS Connection] Client connecting...');
         const url = new URL(request.url || '', `http://${request.headers.host}`);
-        const gameIdMatch = url.pathname.match(/^\/ws\/game\/([a-zA-Z0-9-]+)$/);
+        console.log(`[WSS Debug] request.url: ${request.url}`);
+        console.log(`[WSS Debug] url.pathname: ${url.pathname}`);
+        const gameIdMatch = url.pathname.match(/^\/ws\/game\/([a-zA-Z0-9-_]+)$/);
         const gameId = gameIdMatch ? gameIdMatch[1] : null;
+        console.log(`[WSS Debug] gameId found: ${gameId}`);
 
         if (!gameId) {
             console.log('[WSS Connection] No valid gameId, closing.');
@@ -122,7 +123,7 @@ export function getWebSocketServer(): WebSocketServer {
     return globalWithWss[WEBSOCKET_SERVER_KEY]!;
 }
 
-// Broadcast function (specific to this module now)
+// Broadcast function 
 export function broadcast(gameId: string, message: BroadcastMessage, senderWs?: Ws) {
     const game = games.get(gameId);
     if (!game) return;
@@ -139,7 +140,7 @@ export function broadcast(gameId: string, message: BroadcastMessage, senderWs?: 
     });
 }
 
-// Function to handle the upgrade (will be called from the hook)
+// Function to handle the upgrade 
 export function handleUpgrade(request: IncomingMessage, socket: Socket, head: Buffer) {
     const wss = getWebSocketServer();
     wss.handleUpgrade(request, socket, head, (ws: Ws) => {

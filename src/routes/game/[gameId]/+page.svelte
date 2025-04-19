@@ -3,11 +3,10 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { writable } from 'svelte/store';
 
-	// --- Game State (Client-side Mirror) ---
 	interface PlayerInfo {
 		id: string;
 		name: string;
-		voted: boolean; // Track if player has voted in current round
+		voted: boolean;
 	}
 	interface ClientGameState {
 		id: string | null;
@@ -16,7 +15,7 @@
 		votes: { [playerId: string]: string | number | null };
 		revealed: boolean;
 		myName: string;
-		myId: string | null; // Store our own player ID
+		myId: string | null; 
 		allVoted: boolean;
 	}
 
@@ -180,13 +179,7 @@
 	}
 
 	// Default Fibonacci deck
-	const cardDeck = [0, 1, 2, 3, 5, 8, 13, 21, 34, '∞', '?']; // Added '∞' and '?' common options
-
-	// --- UI Components (Inline for simplicity, extract later) ---
-	// Player List Component Placeholder
-	// Story Display Component Placeholder
-	// Card Deck / Voting Component Placeholder
-	// Results Display Component Placeholder
+	const cardDeck = [0, 1, 2, 3, 5, 8, 13, 21, 34, '∞', '?']; 
 
 </script>
 
