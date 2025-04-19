@@ -25,19 +25,6 @@
 					class="h-10 w-10 transition duration-300 ease-in-out hover:scale-110 hover:opacity-75"
 				/>
 			</a>
-			<a
-				href="https://www.linkedin.com/in/kulaizki/"
-				target="_blank"
-				rel="noopener noreferrer"
-				aria-label="LinkedIn"
-				class="flex items-center space-x-2"
-			>
-				<img
-					src="https://skillicons.dev/icons?i=linkedin"
-					alt="LinkedIn"
-					class="h-10 w-10 transition duration-300 ease-in-out hover:scale-110 hover:opacity-75"
-				/>
-			</a>
 		</div>
 	</div>
 </footer>
