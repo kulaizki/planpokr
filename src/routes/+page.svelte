@@ -2,6 +2,9 @@
 	import { goto } from '$app/navigation';
 	import { cubicOut } from 'svelte/easing';
 	import { onMount } from 'svelte';
+	import { writable } from 'svelte/store';
+
+	const initialLoadComplete = writable(false);
 
 	function createGame() {
 		// Generate a simple unique-ish ID
@@ -36,7 +39,12 @@
 	}
 
 	onMount(() => {
-		show = true;
+		if (!$initialLoadComplete) {
+			initialLoadComplete.set(true);
+			show = true; 
+		} else {
+			show = true; 
+		}
 	});
 </script>
 
