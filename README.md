@@ -5,6 +5,8 @@ A modern, real-time planning poker application for agile teams to estimate user 
 ![PlanPokr](https://img.shields.io/badge/PlanPokr-1.0.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
+https://github.com/user-attachments/assets/9037022f-692f-417d-89cb-f3c9ac302571
+
 ## Features
 
 - **Real-time Collaboration**: Instantly see votes and status updates from all team members
