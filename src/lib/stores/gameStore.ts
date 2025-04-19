@@ -46,40 +46,53 @@ export function createGameStore(gameId: string, playerName: string) {
       connectionStatus.set('connecting');
       
       // Check if game exists
-      const { data: existingGame } = await supabase
+      const { data: existingGame, error: gameError } = await supabase
         .from('games')
-        .select('*')
+        .select('id') // Select only id to check existence
         .eq('id', gameId)
-        .single();
+        .maybeSingle(); // Use maybeSingle to handle game not found gracefully
+        
+      if (gameError && gameError.code !== 'PGRST116') { // Ignore 'PGRST116' (resource not found)
+        throw gameError;
+      }
       
       if (!existingGame) {
         // Create new game if it doesn't exist
-        await supabase.from('games').insert({
+        const { error: insertGameError } = await supabase.from('games').insert({
           id: gameId,
           current_story: 'No story set yet.',
           revealed: false
         });
+        if (insertGameError) throw insertGameError;
       }
       
-      // Add player to players table
-      await supabase.from('players').insert({
+      // Add player to players table or update existing (upsert)
+      const { error: playerError } = await supabase.from('players').upsert({
         id: playerId,
         game_id: gameId,
         name: playerName,
-        voted: false
+        voted: false // Ensure voted is false on join/rejoin
       });
+      if (playerError) throw playerError;
       
-      // Initialize vote
-      await supabase.from('votes').insert({
+      // Initialize or update vote (upsert)
+      const { error: voteError } = await supabase.from('votes').upsert({
         player_id: playerId,
         game_id: gameId,
-        value: null
-      });
+        value: null // Ensure vote is null on join/rejoin
+      }, { onConflict: 'game_id, player_id' }); // Specify conflict target
+      if (voteError) throw voteError;
+      
+      // Fetch initial game state immediately after joining/setup
+      await refreshPlayers();
+      await refreshVotes();
+      await refreshGameState();
       
       connectionStatus.set('connected');
       
       // Set up realtime channels
       setupRealtimeChannels();
+      
     } catch (error) {
       console.error('Error initializing game:', error);
       connectionStatus.set('error');
