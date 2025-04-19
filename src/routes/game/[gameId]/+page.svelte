@@ -2,22 +2,8 @@
 	import { page } from '$app/stores';
 	import { onDestroy, onMount } from 'svelte';
 	import { writable } from 'svelte/store';
-
-	interface PlayerInfo {
-		id: string;
-		name: string;
-		voted: boolean;
-	}
-	interface ClientGameState {
-		id: string | null;
-		players: PlayerInfo[];
-		currentStory: string;
-		votes: { [playerId: string]: string | number | null };
-		revealed: boolean;
-		myName: string;
-		myId: string | null; 
-		allVoted: boolean;
-	}
+	import type { ClientGameState, ConnectionStatus, VoteValue } from '$lib/types';
+	import { PlayerList, StoryArea, VotingArea, ConnectionStatus as ConnectionStatusComponent } from '$lib/components';
 
 	const gameState = writable<ClientGameState>({
 		id: null,
@@ -31,8 +17,8 @@
 	});
 
 	let ws: WebSocket | null = null;
-	let connectionStatus = writable<'connecting' | 'connected' | 'disconnected' | 'error' >('connecting');
-	let currentVote = writable<string | number | null>(null);
+	let connectionStatus = writable<ConnectionStatus>('connecting');
+	let currentVote = writable<VoteValue>(null);
 	let storyInput = '';
 
 	// --- WebSocket Logic ---
@@ -126,7 +112,6 @@
 				console.log('WebSocket closed:', event.code, event.reason);
 				connectionStatus.set('disconnected');
 				ws = null;
-				// Optional: Attempt reconnection?
 			};
 
 			ws.onerror = (error) => {
@@ -177,10 +162,6 @@
 		storyInput = ''; // Clear input for potential next story
 		sendMessage('NEXT_STORY', { story: '' }); // Clear story on server, reset votes
 	}
-
-	// Default Fibonacci deck
-	const cardDeck = [0, 1, 2, 3, 5, 8, 13, 21, 34, '∞', '?']; 
-
 </script>
 
 <svelte:head>
@@ -188,104 +169,42 @@
 </svelte:head>
 
 <div class="container mx-auto min-h-screen p-4 sm:p-6 lg:p-8">
-	{#if $connectionStatus === 'connecting'}
-		<p class="text-center text-yellow-400">Connecting to game...</p>
-	{:else if $connectionStatus === 'disconnected'}
-		<p class="text-center text-red-500">Disconnected. Please refresh to rejoin.</p>
-	{:else if $connectionStatus === 'error'}
-		<p class="text-center text-red-600">Connection error. Could not join game.</p>
-	{:else if $connectionStatus === 'connected'}
+	{#if $connectionStatus !== 'connected'}
+		<ConnectionStatusComponent status={$connectionStatus} />
+	{:else}
 		<!-- Main Game Layout -->
 		<div class="flex flex-col gap-8">
 			<!-- Top Row: Story + Players -->
 			<div class="grid grid-cols-1 gap-6 md:grid-cols-3">
 				<!-- Story Area -->
-				<div class="md:col-span-2 rounded-lg border border-gray-700 bg-gray-800 p-4 shadow">
-					<h2 class="mb-2 text-sm font-semibold uppercase tracking-wider text-gray-400">Current Story</h2>
-                     {#if $gameState.revealed}
-                         <!-- Show results/next story button after reveal -->
-                         <p class="mb-4 min-h-[60px] text-xl font-medium text-gray-100">{$gameState.currentStory || 'Waiting for next story...'}</p>
-                         <button on:click={handleNextStory} class="w-full rounded bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700">
-                             Start Next Story / Reset Votes
-                         </button>
-                     {:else}
-                        <!-- Allow setting story before reveal -->
-                        <p class="mb-2 min-h-[60px] text-xl font-medium text-gray-100">{$gameState.currentStory || 'No story set yet.'}</p>
-                        <div class="flex gap-2">
-                            <input
-                                type="text"
-                                bind:value={storyInput}
-                                placeholder="Enter story title or description..."
-                                class="flex-grow rounded border border-gray-600 bg-gray-700 px-3 py-2 text-gray-100 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            />
-                            <button on:click={handleSetStory} class="rounded bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700">
-                                Set Story
-                            </button>
-                        </div>
-                     {/if}
-				</div>
+				<StoryArea 
+					currentStory={$gameState.currentStory}
+					revealed={$gameState.revealed}
+					bind:storyInput
+					onSetStory={handleSetStory}
+					onNextStory={handleNextStory}
+				/>
+				
 				<!-- Player List -->
-				<div class="rounded-lg border border-gray-700 bg-gray-800 p-4 shadow">
-					<h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-400">Players ({$gameState.players.length})</h2>
-					<ul class="space-y-2">
-						{#each $gameState.players as player (player.id)}
-							<li class="flex items-center justify-between rounded bg-gray-700 px-3 py-1.5 text-sm">
-								<span class="font-medium text-gray-200 {player.id === $gameState.myId ? 'text-blue-400' : ''}">{player.name} {player.id === $gameState.myId ? '(You)' : ''}</span>
-								{#if $gameState.revealed}
-									<span class="rounded bg-blue-600 px-2 py-0.5 text-xs font-semibold text-white">{$gameState.votes[player.id] ?? '-'}</span>
-								{:else}
-									<span class="h-5 w-5 rounded-full {player.voted ? 'bg-green-500' : 'bg-gray-500'}" title={player.voted ? 'Voted' : 'Waiting...'}></span>
-								{/if}
-							</li>
-						{/each}
-					</ul>
-				</div>
+				<PlayerList
+					players={$gameState.players}
+					myId={$gameState.myId}
+					votes={$gameState.votes}
+					revealed={$gameState.revealed}
+				/>
 			</div>
 
 			<!-- Voting Area -->
-			<div class="rounded-lg border border-gray-700 bg-gray-800 p-6 text-center shadow">
-                 {#if $gameState.revealed}
-                    <h2 class="mb-4 text-lg font-semibold text-gray-200">Votes Revealed!</h2>
-                     <!-- Basic Result Display -->
-                     <div class="flex flex-wrap justify-center gap-4">
-                         {#each Object.entries($gameState.votes) as [playerId, vote] (playerId)}
-                            {@const player = $gameState.players.find(p => p.id === playerId)}
-                            <div class="flex flex-col items-center">
-                                <div class="mb-1 flex h-20 w-14 items-center justify-center rounded-md border-2 border-blue-500 bg-gray-700 text-2xl font-bold text-white shadow-md">
-                                    {vote ?? '-'}
-                                </div>
-                                <span class="text-xs text-gray-400">{player?.name ?? 'Unknown'}</span>
-                            </div>
-                         {/each}
-                     </div>
-                     <button on:click={handleNextStory} class="mt-6 rounded bg-purple-600 px-6 py-2 font-medium text-white hover:bg-purple-700">
-                        Start Next Story / Reset Votes
-                    </button>
-                 {:else}
-                    <h2 class="mb-6 text-lg font-semibold text-gray-200">Choose your estimate:</h2>
-                    <div class="flex flex-wrap justify-center gap-3 sm:gap-4">
-                        {#each cardDeck as cardValue (cardValue)}
-                            {@const isSelected = $currentVote === cardValue}
-                            <button
-                                on:click={() => handleVote(cardValue)}
-                                class="flex h-24 w-16 transform flex-col items-center justify-center rounded-lg border-2 shadow-md transition-all duration-150 ease-in-out sm:h-28 sm:w-20 {isSelected
-                                    ? 'border-blue-500 bg-blue-600 scale-105'
-                                    : 'border-gray-600 bg-gray-700 hover:border-gray-500 hover:bg-gray-600'}"
-                                disabled={$gameState.revealed}
-                            >
-                                <span class="text-2xl font-bold text-white sm:text-3xl">{cardValue}</span>
-                            </button>
-                        {/each}
-                    </div>
-                     {#if $gameState.allVoted}
-                        <button on:click={handleReveal} class="mt-8 rounded bg-red-600 px-6 py-2 font-medium text-white hover:bg-red-700">
-                             Reveal Votes
-                        </button>
-                     {:else}
-                        <p class="mt-8 text-sm text-gray-400">Waiting for all players to vote...</p>
-                    {/if}
-                 {/if}
-			</div>
+			<VotingArea
+				revealed={$gameState.revealed}
+				votes={$gameState.votes}
+				players={$gameState.players}
+				currentVote={$currentVote}
+				allVoted={$gameState.allVoted}
+				onVote={handleVote}
+				onReveal={handleReveal}
+				onNextStory={handleNextStory}
+			/>
 		</div>
 	{/if}
 </div> 
