@@ -11,7 +11,7 @@
 	{#if revealed}
 		<!-- Show results/next story button after reveal -->
 		<p class="mb-4 min-h-[60px] text-xl font-medium text-gray-100">{currentStory || 'Waiting for next story...'}</p>
-		<button on:click={onNextStory} class="w-full rounded bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700">
+		<button on:click={onNextStory} class="w-full rounded bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 hover:cursor-pointer transition-colors">
 			Start Next Story / Reset Votes
 		</button>
 	{:else}
@@ -24,7 +24,7 @@
 				placeholder="Enter story title or description..."
 				class="flex-grow rounded border border-gray-600 bg-gray-700 px-3 py-2 text-gray-100 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
 			/>
-			<button on:click={onSetStory} class="rounded bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700">
+			<button on:click={onSetStory} class="rounded bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 hover:cursor-pointer transition-colors">
 				Set Story
 			</button>
 		</div>

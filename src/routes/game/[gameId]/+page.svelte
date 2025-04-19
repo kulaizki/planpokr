@@ -126,20 +126,25 @@
 </svelte:head>
 
 {#if awaitingNameInput}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
-		<div class="rounded-lg bg-gray-800 p-8 shadow-xl border border-gray-700">
-			<h2 class="mb-4 text-2xl font-semibold text-white">Enter Your Name</h2>
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-80 backdrop-blur-sm">
+		<div class="w-full max-w-md rounded-xl bg-gray-800 p-8 shadow-2xl border border-gray-700">
+			<h2 class="mb-6 text-2xl font-bold text-white text-center">Join Planning Poker</h2>
 			<form on:submit|preventDefault={initializeGame} class="flex flex-col gap-4">
-				<input
-					type="text"
-					bind:value={nameInput}
-					placeholder="Your display name..."
-					class="rounded border border-gray-600 bg-gray-700 px-4 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-					autofocus
-				/>
+				<div>
+					<label for="name-input" class="mb-2 block text-sm font-medium text-gray-300">Your Name</label>
+					<input
+						id="name-input"
+						type="text"
+						bind:value={nameInput}
+						placeholder="Enter your name..."
+						class="w-full rounded-lg border border-gray-600 bg-gray-700 px-4 py-3 text-lg text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+						autofocus
+					/>
+				</div>
+				<p class="text-sm text-gray-400 italic">This will be visible to other players in the game.</p>
 				<button 
 					type="submit"
-					class="rounded bg-blue-600 px-6 py-2 font-medium text-white hover:bg-blue-700 transition-colors"
+					class="mt-2 rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700 transition-colors hover:cursor-pointer"
 				>
 					Join Game
 				</button>
@@ -152,7 +157,7 @@
 			<h1 class="text-2xl font-bold text-gray-100">PlanPokr Game</h1>
 			<button 
 				on:click={copyLink}
-				class="rounded bg-gray-600 px-3 py-1.5 text-xs font-medium text-gray-200 hover:bg-gray-500 transition-colors"
+				class="rounded bg-gray-600 px-4 py-2 text-sm font-medium text-gray-200 hover:bg-gray-500 transition-colors hover:cursor-pointer"
 			>
 				{copyButtonText}
 			</button>

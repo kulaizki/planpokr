@@ -28,7 +28,7 @@
 				</div>
 			{/each}
 		</div>
-		<button on:click={onNextStory} class="mt-6 rounded bg-purple-600 px-6 py-2 font-medium text-white hover:bg-purple-700">
+		<button on:click={onNextStory} class="mt-6 rounded bg-purple-600 px-6 py-2 font-medium text-white hover:bg-purple-700 hover:cursor-pointer transition-colors">
 			Start Next Story / Reset Votes
 		</button>
 	{:else}
@@ -38,7 +38,7 @@
 				{@const isSelected = currentVote === cardValue}
 				<button
 					on:click={() => onVote(cardValue)}
-					class="flex h-24 w-16 transform flex-col items-center justify-center rounded-lg border-2 shadow-md transition-all duration-150 ease-in-out sm:h-28 sm:w-20 {isSelected
+					class="flex h-24 w-16 transform flex-col items-center justify-center rounded-lg border-2 shadow-md transition-all duration-150 ease-in-out sm:h-28 sm:w-20 hover:cursor-pointer {isSelected
 						? 'border-blue-500 bg-blue-600 scale-105'
 						: 'border-gray-600 bg-gray-700 hover:border-gray-500 hover:bg-gray-600'}"
 					disabled={revealed}

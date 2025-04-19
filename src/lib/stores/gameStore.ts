@@ -146,6 +146,9 @@ export function createGameStore(gameId: string, playerName: string) {
       updateStory(payload.story);
     }).on('broadcast', { event: 'reveal' }, () => {
       revealVotes();
+    }).on('broadcast', { event: 'reset_votes' }, () => {
+      // Immediately refresh player status when a reset_votes event is received
+      refreshPlayers(); 
     });
 
     // Handle postgres changes for database state
@@ -407,20 +410,23 @@ export function createGameStore(gameId: string, playerName: string) {
           players: updatedPlayers // Update player voted status locally
         };
       });
-      // --- End Immediate Local State Update --- 
       
       // Broadcast the story update event (other clients react to this or DB changes)
-      supabase.channel(`game:${gameId}`).send({
+      const channel = supabase.channel(`game:${gameId}`);
+      
+      // Broadcast a specific reset_votes event to ensure all clients update player status
+      channel.send({
+        type: 'broadcast',
+        event: 'reset_votes',
+        payload: { resetBy: playerId }
+      });
+      
+      // Also broadcast the story update
+      channel.send({
         type: 'broadcast',
         event: 'story_update',
         payload: { story }
       });
-      
-      // Fetch latest state to ensure eventual consistency (optional, but good practice)
-      // The postgres_changes listeners should handle this, but explicit refresh can be a backup.
-      // await refreshPlayers();
-      // await refreshVotes();
-      // await refreshGameState();
       
     } catch (error) {
       console.error('Error setting story:', error);
