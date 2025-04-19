@@ -373,7 +373,7 @@ export function createGameStore(gameId: string, playerName: string) {
   // Set story
   async function setStory(story: string) {
     try {
-      // Update game
+      // Update game state in DB
       await supabase
         .from('games')
         .update({ 
@@ -382,39 +382,46 @@ export function createGameStore(gameId: string, playerName: string) {
         })
         .eq('id', gameId);
       
-      // Reset votes
+      // Reset votes in DB
       await supabase
         .from('votes')
         .update({ value: null })
         .eq('game_id', gameId);
       
-      // Reset player voted status
+      // Reset player voted status in DB
       await supabase
         .from('players')
         .update({ voted: false })
         .eq('game_id', gameId);
       
-      // Update local state immediately
-      gameState.update(state => ({
-        ...state,
-        currentStory: story,
-        revealed: false,
-        votes: {},
-        allVoted: false,
-        players: state.players.map(p => ({ ...p, voted: false }))
-      }));
+      // --- Immediate Local State Update --- 
+      // Update local state *immediately* to reflect the reset for a faster UI response
+      gameState.update(state => {
+        const updatedPlayers = state.players.map(p => ({ ...p, voted: false }));
+        return {
+          ...state,
+          currentStory: story || 'No story set yet.', // Ensure story isn't empty string locally
+          revealed: false,
+          votes: {}, // Clear local votes map
+          allVoted: false,
+          players: updatedPlayers // Update player voted status locally
+        };
+      });
+      // --- End Immediate Local State Update --- 
       
-      // Broadcast the story update
+      // Broadcast the story update event (other clients react to this or DB changes)
       supabase.channel(`game:${gameId}`).send({
         type: 'broadcast',
         event: 'story_update',
         payload: { story }
       });
       
-      // Fetch latest state to ensure consistency
-      await refreshPlayers();
-      await refreshVotes();
-      await refreshGameState();
+      // Fetch latest state to ensure eventual consistency (optional, but good practice)
+      // The postgres_changes listeners should handle this, but explicit refresh can be a backup.
+      // await refreshPlayers();
+      // await refreshVotes();
+      // await refreshGameState();
+      
     } catch (error) {
       console.error('Error setting story:', error);
     }
