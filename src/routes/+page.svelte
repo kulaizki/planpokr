@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { cubicOut } from 'svelte/easing';
-	import { onMount } from 'svelte'; 
+	import { onMount } from 'svelte';
 
 	function createGame() {
 		// Generate a simple unique-ish ID
@@ -9,7 +9,7 @@
 		goto(`/game/${gameId}`);
 	}
 
-	let show: boolean = false; 
+	let show: boolean = false;
 
 	function blurFly(
 		node: HTMLElement,
@@ -49,10 +49,10 @@
 </svelte:head>
 
 {#if show}
-	<section
-		class="container mx-auto flex flex-col md:flex-row items-center justify-between gap-10 px-4 py-6 sm:px-6 md:py-10 lg:px-8 lg:py-12"
-		in:blurFly
-	>
+<section
+	class="container mx-auto flex flex-col md:flex-row items-center justify-between gap-10 px-4 py-6 sm:px-6 md:py-10 lg:px-8 lg:py-12"
+	in:blurFly
+>
 		<div class="flex flex-col items-center text-center md:items-start md:text-left gap-4 md:max-w-[50%]">
 			<h1
 				class="text-4xl leading-tight font-extrabold tracking-tight text-gray-100 sm:text-5xl md:text-6xl lg:text-7xl"
@@ -88,5 +88,5 @@
 				loading="eager" 
 			/>
 		</div>
-	</section>
+</section>
 {/if}
