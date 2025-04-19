@@ -130,33 +130,45 @@ export function broadcast(gameId: string, message: BroadcastMessage, senderWs?: 
 
 // SvelteKit handle hook
 export const handle: Handle = async ({ event, resolve }) => {
+    console.log('[handle] Hook executing...');
+
     // @ts-expect-error - Use expect-error and check if platform type needs adjustment
     const viteDevServer = event.platform?.viteDevServer ?? globalThis.viteDevServer;
 
+    console.log('[handle] Found viteDevServer:', !!viteDevServer);
+
      if (viteDevServer && viteDevServer.httpServer) {
+        console.log('[handle] Found httpServer:', !!viteDevServer.httpServer);
         const httpServer = viteDevServer.httpServer;
+
         // Add listener only once
         if (!httpServer.listenerCount('upgrade')) {
-             console.log('Attaching WebSocket upgrade listener...');
+             console.log('[handle] Attaching WebSocket upgrade listener...');
             httpServer.on('upgrade', (request: IncomingMessage, socket: Socket, head: Buffer) => {
-                 console.log('Upgrade event received for path:', request.url);
+                 console.log('[handle] Upgrade event received for path:', request.url);
                  const url = new URL(request.url || '', `http://${request.headers.host}`);
                 if (url.pathname.startsWith('/ws/game/')) {
-                     console.log('Handling upgrade for game path...');
+                     console.log('[handle] Handling upgrade for game path...');
                     wss.handleUpgrade(request, socket, head, (ws: Ws) => {
+                        console.log('[handle] WebSocket handshake complete, emitting connection.');
                         wss.emit('connection', ws, request);
                     });
                  } else {
-                     console.log('Upgrade for non-game path, destroying socket.');
+                     console.log('[handle] Upgrade for non-game path, destroying socket.');
                      socket.destroy();
                  }
             });
-            console.log('WebSocket upgrade listener attached.');
+            console.log('[handle] WebSocket upgrade listener attached.');
+        } else {
+             console.log('[handle] Upgrade listener already attached.');
         }
-     } else if (import.meta.env.PROD) { 
-         console.warn('HTTP server not available via event.platform.viteDevServer. WebSockets may not work in this production environment without specific adapter configuration.');
+     } else if (import.meta.env.PROD) {
+         console.warn('[handle] HTTP server not available via event.platform.viteDevServer. WebSockets may not work in this production environment without specific adapter configuration.');
+     } else {
+         console.log('[handle] viteDevServer or httpServer not found in dev environment.');
      }
 
+    console.log('[handle] Resolving event...');
     return resolve(event);
 };
 
