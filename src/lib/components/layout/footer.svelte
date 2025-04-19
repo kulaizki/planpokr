@@ -6,7 +6,7 @@
 				href="https://fitzsixto.com/"
 				target="_blank"
 				rel="noopener noreferrer"
-				class="bg-gradient-to-r from-blue-300 to-blue-600 bg-clip-text font-bold text-transparent transition duration-200 ease-in-out [text-shadow:0_0_8px_rgba(0,242,255,0.4)]"
+				class="bg-gradient-to-r from-blue-300 to-blue-600 bg-clip-text font-bold text-transparent transition duration-200 ease-in-out [text-shadow:0_0_8px_rgba(0,242,255,0.4)] hover:from-blue-400 hover:to-blue-800"
 			>
 				Fitzsixto
 			</a>. All rights reserved.
