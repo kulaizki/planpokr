@@ -379,12 +379,27 @@ export function createGameStore(gameId: string, playerName: string) {
         .update({ voted: false })
         .eq('game_id', gameId);
       
+      // Update local state immediately
+      gameState.update(state => ({
+        ...state,
+        currentStory: story,
+        revealed: false,
+        votes: {},
+        allVoted: false,
+        players: state.players.map(p => ({ ...p, voted: false }))
+      }));
+      
       // Broadcast the story update
       supabase.channel(`game:${gameId}`).send({
         type: 'broadcast',
         event: 'story_update',
         payload: { story }
       });
+      
+      // Fetch latest state to ensure consistency
+      await refreshPlayers();
+      await refreshVotes();
+      await refreshGameState();
     } catch (error) {
       console.error('Error setting story:', error);
     }

@@ -7,7 +7,6 @@
 	export let currentVote: VoteValue = null;
 	export let allVoted: boolean = false;
 	export let onVote: (vote: string | number) => void;
-	export let onReveal: () => void;
 	export let onNextStory: () => void;
 	
 	// Default Fibonacci deck
@@ -48,11 +47,7 @@
 				</button>
 			{/each}
 		</div>
-		{#if allVoted}
-			<button on:click={onReveal} class="mt-8 rounded bg-red-600 px-6 py-2 font-medium text-white hover:bg-red-700">
-				Reveal Votes
-			</button>
-		{:else}
+		{#if !allVoted}
 			<p class="mt-8 text-sm text-gray-400">Waiting for all players to vote...</p>
 		{/if}
 	{/if}
