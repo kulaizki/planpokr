@@ -43,7 +43,7 @@
 </script>
 
 <svelte:head>
-	<title>PlanPokr - Agile Planning Poker</title>
+	<title>PlanPokr</title>
 	<meta
 		name="description"
 		content="Real-time Planning Poker for agile teams. Simple, fast, and effective sprint estimations."

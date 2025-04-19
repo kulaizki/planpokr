@@ -110,11 +110,9 @@
 	// Handle moving to the next story
 	function onNextStory(): void {
 		if (gameStore) {
-			// Set resetting flag to prevent UI flashing
 			isResetting = true;
 			storyInput = handleNextStory(gameStore);
 			
-			// Small delay to ensure state is fully updated
 			setTimeout(() => {
 				isResetting = false;
 			}, 150);
