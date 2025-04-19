@@ -181,12 +181,18 @@ export function createGameStore(gameId: string, playerName: string) {
 
   // Helper functions to refresh data
   async function refreshPlayers() {
-    const { data: players } = await supabase
+    const { data: players, error } = await supabase
       .from('players')
       .select('*')
       .eq('game_id', gameId);
     
+    if (error) {
+      console.error('Error fetching players:', error);
+      return;
+    }
+    
     if (players) {
+      console.log('Players refreshed:', players);
       gameState.update(state => ({
         ...state,
         players: players.map(p => ({
@@ -199,18 +205,25 @@ export function createGameStore(gameId: string, playerName: string) {
   }
 
   async function refreshVotes() {
-    const { data: votes } = await supabase
+    const { data: votes, error } = await supabase
       .from('votes')
       .select('*')
       .eq('game_id', gameId);
     
+    if (error) {
+      console.error('Error fetching votes:', error);
+      return;
+    }
+    
     if (votes) {
+      console.log('Votes refreshed:', votes);
       const votesMap: Record<string, VoteValue> = {};
-      const allVoted = votes.every(v => v.value !== null);
       
       votes.forEach(v => {
         votesMap[v.player_id] = v.value;
       });
+      
+      const allVoted = votes.length > 0 && votes.every(v => v.value !== null);
       
       gameState.update(state => ({
         ...state,
@@ -221,13 +234,19 @@ export function createGameStore(gameId: string, playerName: string) {
   }
 
   async function refreshGameState() {
-    const { data: game } = await supabase
+    const { data: game, error } = await supabase
       .from('games')
       .select('*')
       .eq('id', gameId)
       .single();
     
+    if (error) {
+      console.error('Error fetching game state:', error);
+      return;
+    }
+    
     if (game) {
+      console.log('Game state refreshed:', game);
       gameState.update(state => ({
         ...state,
         currentStory: game.current_story,
@@ -284,6 +303,28 @@ export function createGameStore(gameId: string, playerName: string) {
         event: 'vote',
         payload: { playerId, value }
       });
+      
+      // Refresh votes to update local state
+      await refreshVotes();
+      
+      // Check if all players have voted and automatically reveal if so
+      const { data: allPlayers } = await supabase
+        .from('players')
+        .select('voted')
+        .eq('game_id', gameId);
+        
+      const { data: allVotes } = await supabase
+        .from('votes')
+        .select('value')
+        .eq('game_id', gameId);
+        
+      if (allPlayers && allVotes && 
+          allPlayers.length === allVotes.length && 
+          allPlayers.every(p => p.voted) && 
+          allVotes.every(v => v.value !== null)) {
+        // All players have voted, auto-reveal
+        await reveal();
+      }
     } catch (error) {
       console.error('Error voting:', error);
     }
@@ -303,6 +344,12 @@ export function createGameStore(gameId: string, playerName: string) {
         event: 'reveal',
         payload: {}
       });
+      
+      // Update local state immediately
+      gameState.update(state => ({
+        ...state,
+        revealed: true
+      }));
     } catch (error) {
       console.error('Error revealing votes:', error);
     }
