@@ -1,13 +1,20 @@
 import type { Handle } from '@sveltejs/kit';
-import { WebSocketServer } from 'ws';
-import { type GameState, games } from '$lib/server/game_state'; // We will create this next
+import Ws, { WebSocketServer } from 'ws'; 
+import type { IncomingMessage } from 'node:http';
+import type { Socket } from 'node:net';
+import type { Buffer } from 'node:buffer';
+import { type GameState, type Player, games } from '$lib/server/game_state'; 
 
 console.log('Setting up WebSocket server...');
 
-const wss = new WebSocketServer({ noServer: true }); // Use noServer to integrate with existing HTTP server
+const wss = new WebSocketServer({ noServer: true });
 
-wss.on('connection', (ws, request) => {
-    // Extract gameId from the request URL (e.g., /ws/game/[gameId])
+interface BroadcastMessage {
+    type: string;
+    payload?: unknown; 
+}
+
+wss.on('connection', (ws: Ws, request: IncomingMessage) => { 
     const url = new URL(request.url || '', `http://${request.headers.host}`);
     const gameIdMatch = url.pathname.match(/^\/ws\/game\/([a-zA-Z0-9-]+)$/);
     const gameId = gameIdMatch ? gameIdMatch[1] : null;
@@ -20,7 +27,6 @@ wss.on('connection', (ws, request) => {
 
     console.log(`Client connected to game: ${gameId}`);
 
-    // Initialize game if it doesn't exist (basic handling)
     if (!games.has(gameId)) {
         games.set(gameId, {
             id: gameId,
@@ -32,34 +38,38 @@ wss.on('connection', (ws, request) => {
     }
     const game = games.get(gameId) as GameState;
 
-    // Add player (simplified ID for now)
     const playerId = `player_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const playerName = url.searchParams.get('name') || `Anon_${playerId.slice(-4)}`;
-    game.players.push({ id: playerId, name: playerName, ws });
-    game.votes[playerId] = null; // Initialize vote
 
-    // Send initial game state to the new player
-    ws.send(JSON.stringify({ type: 'GAME_STATE', payload: { ...game, players: game.players.map(p => ({ id: p.id, name: p.name })) } })); // Don't send ws objects
+    const newPlayer: Player = { id: playerId, name: playerName, ws };
+    game.players.push(newPlayer);
+    game.votes[playerId] = null;
 
-    // Notify others about the new player
+    // Prepare players list without ws objects for sending
+    const playersForClient = game.players.map(p => ({ id: p.id, name: p.name }));
+
+    // Send initial game state
+    ws.send(JSON.stringify({ type: 'GAME_STATE', payload: { ...game, players: playersForClient } }));
+
+    // Notify others
     broadcast(gameId, { type: 'PLAYER_JOINED', payload: { id: playerId, name: playerName } }, ws);
 
-
-    ws.on('message', (message) => {
+    ws.on('message', (message: Buffer | string) => { 
         try {
-            const parsedMessage = JSON.parse(message.toString());
+            const messageString = message.toString();
+            const parsedMessage = JSON.parse(messageString);
             console.log('Received:', parsedMessage);
+
+            // check for player existence
+            const currentPlayer = game.players.find(p => p.id === playerId);
+            if (!currentPlayer) return; 
 
             switch (parsedMessage.type) {
                 case 'VOTE':
-                    if (game.players.some(p => p.id === playerId)) {
-                        game.votes[playerId] = parsedMessage.payload.vote;
-                        // Notify others that player has voted (but not the value yet)
-                        broadcast(gameId, { type: 'PLAYER_VOTED', payload: { playerId } });
-                         // Check if all players voted
-                         if (Object.values(game.votes).every(vote => vote !== null)) {
-                            broadcast(gameId, { type: 'ALL_VOTED' });
-                        }
+                    game.votes[playerId] = parsedMessage.payload.vote;
+                    broadcast(gameId, { type: 'PLAYER_VOTED', payload: { playerId } });
+                    if (Object.values(game.votes).every(vote => vote !== null)) {
+                       broadcast(gameId, { type: 'ALL_VOTED' });
                     }
                     break;
                 case 'REVEAL':
@@ -67,53 +77,48 @@ wss.on('connection', (ws, request) => {
                     broadcast(gameId, { type: 'REVEAL_VOTES', payload: game.votes });
                     break;
                 case 'NEXT_STORY':
-                    game.currentStory = parsedMessage.payload.story || ''; // Allow updating story
-                    game.revealed = false;
-                    // Reset votes
-                    Object.keys(game.votes).forEach(pid => game.votes[pid] = null);
-                    broadcast(gameId, { type: 'NEW_STORY', payload: { story: game.currentStory, votes: game.votes } });
-                    break;
-                 case 'SET_STORY':
+                case 'SET_STORY': 
                     game.currentStory = parsedMessage.payload.story || '';
-                     // Reset votes when story changes
                     game.revealed = false;
                     Object.keys(game.votes).forEach(pid => game.votes[pid] = null);
-                    broadcast(gameId, { type: 'STORY_SET', payload: { story: game.currentStory, votes: game.votes } });
+                    broadcast(gameId, { type: parsedMessage.type === 'SET_STORY' ? 'STORY_SET' : 'NEW_STORY', payload: { story: game.currentStory, votes: game.votes } });
                     break;
-
             }
         } catch (e) {
-            console.error('Failed to parse message or handle', e);
+            console.error('Failed to parse message or handle:', e);
         }
     });
 
     ws.on('close', () => {
         console.log(`Client disconnected from game: ${gameId}`);
-        // Remove player
         const index = game.players.findIndex(p => p.id === playerId);
         if (index !== -1) {
             game.players.splice(index, 1);
             delete game.votes[playerId];
-             // Remove game if empty? Maybe later.
-            // Notify others
             broadcast(gameId, { type: 'PLAYER_LEFT', payload: { playerId } });
         }
     });
 
-    ws.on('error', (error) => {
+    ws.on('error', (error: Error) => { 
         console.error(`WebSocket error for ${playerId}:`, error);
+        const index = game.players.findIndex(p => p.id === playerId);
+         if (index !== -1) {
+            game.players.splice(index, 1);
+            delete game.votes[playerId];
+            broadcast(gameId, { type: 'PLAYER_LEFT', payload: { playerId } });
+         }
     });
 });
 
-
 // Broadcast helper function
-export function broadcast(gameId: string, message: any, senderWs?: WebSocket) {
+export function broadcast(gameId: string, message: BroadcastMessage, senderWs?: Ws) {
     const game = games.get(gameId);
     if (!game) return;
 
     const messageString = JSON.stringify(message);
-    game.players.forEach(player => {
-        if (player.ws !== senderWs && player.ws.readyState === WebSocket.OPEN) {
+    game.players.forEach((player: Player) => { // Explicitly type player
+        // Use Ws.OPEN constant and ensure types match
+        if (player.ws !== senderWs && player.ws.readyState === Ws.OPEN) {
             try {
                 player.ws.send(messageString);
             } catch (e) {
@@ -123,26 +128,33 @@ export function broadcast(gameId: string, message: any, senderWs?: WebSocket) {
     });
 }
 
-// SvelteKit handle hook to upgrade connections
+// SvelteKit handle hook
 export const handle: Handle = async ({ event, resolve }) => {
-    const { server } = event.platform?.viteDevServer || globalThis // Access Vite's server in dev, needs adapter support in prod
-     || { server: null };
+    // @ts-expect-error - Use expect-error and check if platform type needs adjustment
+    const viteDevServer = event.platform?.viteDevServer ?? globalThis.viteDevServer;
 
-     if (server && server.httpServer) {
-        server.httpServer.on('upgrade', (request, socket, head) => {
-             // Only handle upgrades for our specific path
-             const url = new URL(request.url || '', `http://${request.headers.host}`);
-            if (url.pathname.startsWith('/ws/game/')) {
-                wss.handleUpgrade(request, socket, head, (ws) => {
-                    wss.emit('connection', ws, request);
-                });
-             } else {
-                 // For other paths, make sure to destroy the socket if not handled
-                 socket.destroy();
-             }
-        });
-     } else {
-         console.warn('HTTP server not available, WebSocket upgrade might not work in production without adapter support.');
+     if (viteDevServer && viteDevServer.httpServer) {
+        const httpServer = viteDevServer.httpServer;
+        // Add listener only once
+        if (!httpServer.listenerCount('upgrade')) {
+             console.log('Attaching WebSocket upgrade listener...');
+            httpServer.on('upgrade', (request: IncomingMessage, socket: Socket, head: Buffer) => {
+                 console.log('Upgrade event received for path:', request.url);
+                 const url = new URL(request.url || '', `http://${request.headers.host}`);
+                if (url.pathname.startsWith('/ws/game/')) {
+                     console.log('Handling upgrade for game path...');
+                    wss.handleUpgrade(request, socket, head, (ws: Ws) => {
+                        wss.emit('connection', ws, request);
+                    });
+                 } else {
+                     console.log('Upgrade for non-game path, destroying socket.');
+                     socket.destroy();
+                 }
+            });
+            console.log('WebSocket upgrade listener attached.');
+        }
+     } else if (import.meta.env.PROD) { 
+         console.warn('HTTP server not available via event.platform.viteDevServer. WebSockets may not work in this production environment without specific adapter configuration.');
      }
 
     return resolve(event);
