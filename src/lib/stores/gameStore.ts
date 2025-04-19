@@ -1,7 +1,6 @@
 import { writable } from 'svelte/store';
 import { supabase } from '$lib/supabase/client';
 
-// Define local types
 interface PlayerInfo {
   id: string;
   name: string;
@@ -79,100 +78,188 @@ export function createGameStore(gameId: string, playerName: string) {
       
       connectionStatus.set('connected');
       
-      // Subscribe to game changes
-      subscribeToChanges();
+      // Set up realtime channels
+      setupRealtimeChannels();
     } catch (error) {
       console.error('Error initializing game:', error);
       connectionStatus.set('error');
     }
   }
   
-  // Subscribe to real-time changes
-  function subscribeToChanges() {
-    // Subscribe to game table changes
-    const gameSubscription = supabase
-      .channel('game-changes')
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'games',
-        filter: `id=eq.${gameId}`
-      }, (payload) => {
-        const gameData = payload.new;
-        gameState.update(state => ({
-          ...state,
-          currentStory: gameData.current_story,
-          revealed: gameData.revealed
-        }));
-      })
-      .subscribe();
-    
-    // Subscribe to players table changes
-    const playersSubscription = supabase
-      .channel('players-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'players',
-        filter: `game_id=eq.${gameId}`
-      }, async () => {
-        // Fetch updated players list
-        const { data: players } = await supabase
-          .from('players')
-          .select('*')
-          .eq('game_id', gameId);
-        
-        if (players) {
-          gameState.update(state => ({
-            ...state,
-            players: players.map(p => ({
-              id: p.id,
-              name: p.name,
-              voted: p.voted
-            }))
-          }));
-        }
-      })
-      .subscribe();
-    
-    // Subscribe to votes table changes
-    const votesSubscription = supabase
-      .channel('votes-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'votes',
-        filter: `game_id=eq.${gameId}`
-      }, async () => {
-        // Fetch all votes
-        const { data: votes } = await supabase
-          .from('votes')
-          .select('*')
-          .eq('game_id', gameId);
-        
-        if (votes) {
-          const votesMap: Record<string, VoteValue> = {};
-          const allVoted = votes.every(v => v.value !== null);
-          
-          votes.forEach(v => {
-            votesMap[v.player_id] = v.value;
-          });
-          
-          gameState.update(state => ({
-            ...state,
-            votes: votesMap,
-            allVoted
-          }));
-        }
-      })
-      .subscribe();
-    
-    // Return unsubscribe function
+  // Set up Supabase Realtime channels for game updates
+  function setupRealtimeChannels() {
+    // Create a channel for this game room
+    const channel = supabase.channel(`game:${gameId}`, {
+      config: {
+        presence: {
+          key: playerId,
+        },
+      },
+    });
+
+    // Track player presence
+    channel.on('presence', { event: 'join' }, ({ newPresences }) => {
+      console.log('Players joined:', newPresences);
+    }).on('presence', { event: 'leave' }, ({ leftPresences }) => {
+      console.log('Players left:', leftPresences);
+      // Remove players who left
+      if (leftPresences.length > 0) {
+        leftPresences.forEach(async (presence) => {
+          try {
+            // Delete player record
+            await supabase
+              .from('players')
+              .delete()
+              .eq('id', presence.key);
+            
+            // Delete vote record  
+            await supabase
+              .from('votes')
+              .delete()
+              .eq('player_id', presence.key);
+          } catch (error) {
+            console.error('Error removing player:', error);
+          }
+        });
+      }
+    });
+
+    // Set up broadcast listeners for game events
+    channel.on('broadcast', { event: 'vote' }, ({ payload }) => {
+      updateVote(payload.playerId, payload.value);
+    }).on('broadcast', { event: 'story_update' }, ({ payload }) => {
+      updateStory(payload.story);
+    }).on('broadcast', { event: 'reveal' }, () => {
+      revealVotes();
+    });
+
+    // Handle postgres changes for database state
+    channel.on('postgres_changes', { 
+      event: '*', 
+      schema: 'public', 
+      table: 'players',
+      filter: `game_id=eq.${gameId}`
+    }, async () => {
+      await refreshPlayers();
+    }).on('postgres_changes', { 
+      event: '*', 
+      schema: 'public', 
+      table: 'votes',
+      filter: `game_id=eq.${gameId}`
+    }, async () => {
+      await refreshVotes();
+    }).on('postgres_changes', { 
+      event: '*', 
+      schema: 'public', 
+      table: 'games',
+      filter: `id=eq.${gameId}`
+    }, async () => {
+      await refreshGameState();
+    });
+
+    // Track our own online status
+    channel.track({
+      player_id: playerId,
+      name: playerName,
+      online_at: new Date().toISOString(),
+    });
+
+    // Subscribe to the channel
+    channel.subscribe((status) => {
+      console.log(`Channel status: ${status}`);
+      if (status === 'SUBSCRIBED') {
+        connectionStatus.set('connected');
+      } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+        connectionStatus.set('disconnected');
+      }
+    });
+
     return () => {
-      gameSubscription.unsubscribe();
-      playersSubscription.unsubscribe();
-      votesSubscription.unsubscribe();
+      channel.unsubscribe();
     };
+  }
+
+  // Helper functions to refresh data
+  async function refreshPlayers() {
+    const { data: players } = await supabase
+      .from('players')
+      .select('*')
+      .eq('game_id', gameId);
+    
+    if (players) {
+      gameState.update(state => ({
+        ...state,
+        players: players.map(p => ({
+          id: p.id,
+          name: p.name,
+          voted: p.voted
+        }))
+      }));
+    }
+  }
+
+  async function refreshVotes() {
+    const { data: votes } = await supabase
+      .from('votes')
+      .select('*')
+      .eq('game_id', gameId);
+    
+    if (votes) {
+      const votesMap: Record<string, VoteValue> = {};
+      const allVoted = votes.every(v => v.value !== null);
+      
+      votes.forEach(v => {
+        votesMap[v.player_id] = v.value;
+      });
+      
+      gameState.update(state => ({
+        ...state,
+        votes: votesMap,
+        allVoted
+      }));
+    }
+  }
+
+  async function refreshGameState() {
+    const { data: game } = await supabase
+      .from('games')
+      .select('*')
+      .eq('id', gameId)
+      .single();
+    
+    if (game) {
+      gameState.update(state => ({
+        ...state,
+        currentStory: game.current_story,
+        revealed: game.revealed
+      }));
+    }
+  }
+
+  // Helper functions for local updates
+  function updateVote(pid: string, value: VoteValue) {
+    gameState.update(state => {
+      const players = state.players.map(p => 
+        p.id === pid ? { ...p, voted: true } : p
+      );
+      const votes = { ...state.votes, [pid]: value };
+      return { ...state, players, votes };
+    });
+  }
+
+  function updateStory(story: string) {
+    gameState.update(state => ({
+      ...state,
+      currentStory: story, 
+      revealed: false
+    }));
+  }
+
+  function revealVotes() {
+    gameState.update(state => ({
+      ...state,
+      revealed: true
+    }));
   }
   
   // Cast a vote
@@ -190,6 +277,13 @@ export function createGameStore(gameId: string, playerName: string) {
         .update({ value })
         .eq('player_id', playerId)
         .eq('game_id', gameId);
+      
+      // Broadcast the vote event to other players
+      supabase.channel(`game:${gameId}`).send({
+        type: 'broadcast',
+        event: 'vote',
+        payload: { playerId, value }
+      });
     } catch (error) {
       console.error('Error voting:', error);
     }
@@ -202,6 +296,13 @@ export function createGameStore(gameId: string, playerName: string) {
         .from('games')
         .update({ revealed: true })
         .eq('id', gameId);
+      
+      // Broadcast the reveal event
+      supabase.channel(`game:${gameId}`).send({
+        type: 'broadcast',
+        event: 'reveal',
+        payload: {}
+      });
     } catch (error) {
       console.error('Error revealing votes:', error);
     }
@@ -230,6 +331,13 @@ export function createGameStore(gameId: string, playerName: string) {
         .from('players')
         .update({ voted: false })
         .eq('game_id', gameId);
+      
+      // Broadcast the story update
+      supabase.channel(`game:${gameId}`).send({
+        type: 'broadcast',
+        event: 'story_update',
+        payload: { story }
+      });
     } catch (error) {
       console.error('Error setting story:', error);
     }
@@ -249,6 +357,9 @@ export function createGameStore(gameId: string, playerName: string) {
         .from('votes')
         .delete()
         .eq('player_id', playerId);
+      
+      // Leave the channel
+      supabase.channel(`game:${gameId}`).unsubscribe();
     } catch (error) {
       console.error('Error leaving game:', error);
     }
