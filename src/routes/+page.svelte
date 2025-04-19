@@ -1,3 +1,47 @@
+<script lang="ts">
+	import { goto } from '$app/navigation';
+	import { cubicOut } from 'svelte/easing';
+	import { onMount } from 'svelte';
+
+	function createGame() {
+		// Generate a simple unique-ish ID
+		const gameId = `game_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
+		goto(`/game/${gameId}`);
+	}
+
+	let show: boolean = false;
+
+	function blurFly(
+		node: HTMLElement,
+		params: {
+			delay?: number;
+			duration?: number;
+			easing?: (t: number) => number;
+		} = {}
+	): {
+		delay: number;
+		duration: number;
+		easing: (t: number) => number;
+		css: (t: number) => string;
+	} {
+		const existingTransform = getComputedStyle(node).transform.replace('none', '');
+		return {
+			delay: params.delay || 0,
+			duration: params.duration || 1000,
+			easing: params.easing || cubicOut,
+			css: (t: number) => `
+        transform: ${existingTransform} translateY(${(1 - t) * 100}px);
+        opacity: ${t};
+        filter: blur(${(1 - t) * 10}px);
+      `
+		};
+	}
+
+	onMount(() => {
+		show = true;
+	});
+</script>
+
 <svelte:head>
 	<title>PlanPokr - Agile Planning Poker</title>
 	<meta
@@ -6,41 +50,45 @@
 	/>
 </svelte:head>
 
-<script lang="ts">
-	import { goto } from '$app/navigation';
-
-	function createGame() {
-		// Generate a simple unique-ish ID
-		const gameId = `game_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
-		goto(`/game/${gameId}`);
-	}
-</script>
-
-<section class="container mx-auto grid items-center gap-10 px-4 py-12 sm:px-6 md:py-20 lg:px-8 lg:py-24">
-	<div class="flex max-w-[980px] flex-col items-start gap-4">
-		<h1
-			class="text-4xl font-extrabold leading-tight tracking-tight text-gray-100 sm:text-5xl md:text-6xl lg:text-7xl"
-		>
-			Revolutionize Your <br/> <span class="text-blue-500">Sprint Planning</span>
-		</h1>
-		<p class="max-w-[700px] text-lg text-gray-300 sm:text-xl">
-			PlanPokr provides a simple and intuitive interface for real-time, collaborative estimation
-			sessions. Get started in seconds and make planning painless.
-		</p>
-	</div>
-	<div class="flex flex-col gap-4 sm:flex-row">
-		<button
-			on:click={createGame}
-			class="inline-flex h-11 items-center justify-center whitespace-nowrap rounded-md bg-blue-600 px-8 text-base font-semibold text-white ring-offset-gray-900 transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
-		>
-			Start New Game
-		</button>
-		<a
-			href="/learn-more"
-			class="inline-flex h-11 items-center justify-center whitespace-nowrap rounded-md border border-gray-600 bg-transparent px-8 text-base font-medium text-gray-300 ring-offset-gray-900 transition-colors hover:border-gray-500 hover:bg-gray-800 hover:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
-		>
-			Learn More
-		</a>
-	</div>
-</section>
-
+{#if show}
+	<section
+		class="container mx-auto flex flex-col md:flex-row items-center justify-between gap-10 px-4 py-6 sm:px-6 md:py-10 lg:px-8 lg:py-12"
+		transition:blurFly
+	>
+		<div class="flex flex-col items-center text-center md:items-start md:text-left gap-4 md:max-w-[50%]">
+			<h1
+				class="text-4xl leading-tight font-extrabold tracking-tight text-gray-100 sm:text-5xl md:text-6xl lg:text-7xl"
+			>
+				Revolutionize Your <br /> <span class="text-blue-500">Sprint Planning</span>
+			</h1>
+			<p class="max-w-[700px] text-lg text-gray-300 sm:text-xl">
+				PlanPokr provides a simple and intuitive interface for real-time, collaborative estimation
+				sessions. Get started in seconds and make planning painless.
+			</p>
+			<div class="flex flex-col items-center sm:flex-row gap-4 mt-4 w-full justify-center md:justify-start">
+				<button
+					on:click={createGame}
+					class="inline-flex h-11 w-full sm:w-auto items-center justify-center rounded-md bg-blue-600 px-8 text-base font-semibold whitespace-nowrap text-white ring-offset-gray-900 transition-colors hover:bg-blue-700 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+				>
+					Start New Game
+				</button>
+				<a
+					href="/learn-more"
+					class="inline-flex h-11 w-full sm:w-auto items-center justify-center rounded-md border border-gray-600 bg-transparent px-8 text-base font-medium whitespace-nowrap text-gray-300 ring-offset-gray-900 transition-colors hover:border-gray-500 hover:bg-gray-800 hover:text-gray-100 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+				>
+					Learn More
+				</a>
+			</div>
+		</div>
+		<div class="w-full md:w-[45%] flex items-center justify-center">
+			<img 
+				src="/blue-chips.png" 
+				alt="Planning poker blue chips" 
+				class="w-24 h-auto md:w-auto md:max-w-full rounded-lg object-cover"
+				width="600"
+				height="600"
+				loading="eager" 
+			/>
+		</div>
+	</section>
+{/if}
