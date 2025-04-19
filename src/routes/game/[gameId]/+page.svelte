@@ -65,9 +65,15 @@
 		};
 	});
 
-	// Reactive statement to reset local vote selection when votes are reset globally
-	$: if (!$gameStateStore.revealed) {
-		currentVote.set(null);
+	let previousRevealed = false; // Track previous revealed state
+	// Reactive statement to reset local vote selection ONLY when votes are reset globally
+	$: {
+		if (previousRevealed && !$gameStateStore.revealed) {
+			// Reset local vote only when transitioning from revealed=true to revealed=false
+			currentVote.set(null);
+		}
+		// Update previous state for the next check
+		previousRevealed = $gameStateStore.revealed;
 	}
 
 	function handleVote(vote: string | number) {
