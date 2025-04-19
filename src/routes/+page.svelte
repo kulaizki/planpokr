@@ -20,7 +20,7 @@
 	</div>
 	<div class="flex flex-col gap-4 sm:flex-row">
 		<a
-			href="/new-game"
+			href="/create-game"
 			class="inline-flex h-11 items-center justify-center whitespace-nowrap rounded-md bg-blue-600 px-8 text-base font-semibold text-white ring-offset-gray-900 transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
 		>
 			Start New Game
