@@ -113,6 +113,9 @@ export function handleSetStory(
   storyInput: string
 ): string {
   if (storyInput.trim()) {
+    // First prepare for reset
+    gameStore.prepareForReset();
+    // Then set the story
     gameStore.setStory(storyInput.trim());
     return '';
   }
@@ -125,7 +128,10 @@ export function handleSetStory(
  * @returns Empty string to clear the story input
  */
 export function handleNextStory(gameStore: ReturnType<typeof createGameStore>): string {
-  gameStore.resetVotes(); // Reset all votes first
-  gameStore.setStory(''); // Then set empty story
+  // First prepare for reset
+  gameStore.prepareForReset();
+  // Then reset votes and story
+  gameStore.resetVotes();
+  gameStore.setStory('');
   return '';
 } 

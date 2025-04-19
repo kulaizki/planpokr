@@ -1,6 +1,8 @@
 import { writable } from 'svelte/store';
 import { supabase } from '$lib/supabase/client';
 import type { ConnectionStatus, GameState, VoteValue } from '$lib/types/game';
+import { createGameChannel, unsubscribeFromChannel } from '$lib/realtime';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export function createGameStore(gameId: string, playerName: string) {
   // Generate a unique player ID
@@ -20,6 +22,9 @@ export function createGameStore(gameId: string, playerName: string) {
 
   // Connection status management
   const connectionStatus = writable<ConnectionStatus>('connecting');
+  
+  // Store the realtime channel reference for cleanup
+  let gameChannel: RealtimeChannel | null = null;
 
   // Initialize the game in Supabase
   async function initializeGame() {
@@ -65,13 +70,11 @@ export function createGameStore(gameId: string, playerName: string) {
       if (voteError) throw voteError;
       
       // Fetch initial game state immediately after joining/setup
-      await refreshPlayers();
-      await refreshVotes();
-      await refreshGameState();
+      await refreshAllGameData();
       
       connectionStatus.set('connected');
       
-      // Set up realtime channels
+      // Set up realtime channels using the modular approach
       setupRealtimeChannels();
       
     } catch (error) {
@@ -80,177 +83,129 @@ export function createGameStore(gameId: string, playerName: string) {
     }
   }
   
-  // Set up Supabase Realtime channels for game updates
+  // Set up Supabase Realtime channels for game updates using the realtime.ts module
   function setupRealtimeChannels() {
-    // Create a channel for this game room
-    const channel = supabase.channel(`game:${gameId}`, {
-      config: {
-        presence: {
-          key: playerId,
-        },
+    // Create a unified game channel with all handlers
+    gameChannel = createGameChannel(gameId, playerId, playerName, {
+      // Connection status handling
+      onStatus: (status) => {
+        console.log(`Channel status: ${status}`);
+        if (status === 'SUBSCRIBED') {
+          connectionStatus.set('connected');
+        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          connectionStatus.set('disconnected');
+        }
       },
-    });
-
-    // Track player presence
-    channel.on('presence', { event: 'join' }, async ({ newPresences }) => {
-      console.log('Players joined:', newPresences);
-      // Explicitly refresh player list on join for faster UI update
-      await refreshPlayers(); 
-    }).on('presence', { event: 'leave' }, ({ leftPresences }) => {
-      console.log('Players left:', leftPresences);
-      // Remove players who left
-      if (leftPresences.length > 0) {
-        leftPresences.forEach(async (presence) => {
-          try {
-            // Delete player record
-            await supabase
-              .from('players')
-              .delete()
-              .eq('id', presence.key);
-            
-            // Delete vote record  
-            await supabase
-              .from('votes')
-              .delete()
-              .eq('player_id', presence.key);
-          } catch (error) {
-            console.error('Error removing player:', error);
-          }
-        });
-      }
-    });
-
-    // Set up broadcast listeners for game events
-    channel.on('broadcast', { event: 'vote' }, ({ payload }) => {
-      updateVote(payload.playerId, payload.value);
-    }).on('broadcast', { event: 'story_update' }, ({ payload }) => {
-      updateStory(payload.story);
-    }).on('broadcast', { event: 'reveal' }, () => {
-      revealVotes();
-    }).on('broadcast', { event: 'reset_votes' }, () => {
-      // Immediately refresh player status when a reset_votes event is received
-      refreshPlayers(); 
-    });
-
-    // Handle postgres changes for database state
-    channel.on('postgres_changes', { 
-      event: '*', 
-      schema: 'public', 
-      table: 'players',
-      filter: `game_id=eq.${gameId}`
-    }, async () => {
-      await refreshPlayers();
-    }).on('postgres_changes', { 
-      event: '*', 
-      schema: 'public', 
-      table: 'votes',
-      filter: `game_id=eq.${gameId}`
-    }, async () => {
-      await refreshVotes();
-    }).on('postgres_changes', { 
-      event: '*', 
-      schema: 'public', 
-      table: 'games',
-      filter: `id=eq.${gameId}`
-    }, async () => {
-      await refreshGameState();
-    });
-
-    // Subscribe to the channel
-    channel.subscribe((status) => {
-      console.log(`Channel status: ${status}`);
-      if (status === 'SUBSCRIBED') {
-        connectionStatus.set('connected');
-        
-        // Only track presence after subscription is complete
-        channel.track({
-          player_id: playerId,
-          name: playerName,
-          online_at: new Date().toISOString(),
-        });
-      } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-        connectionStatus.set('disconnected');
-      }
-    });
-
-    return () => {
-      channel.unsubscribe();
-    };
-  }
-
-  // Helper functions to refresh data
-  async function refreshPlayers() {
-    const { data: players, error } = await supabase
-      .from('players')
-      .select('*')
-      .eq('game_id', gameId);
-    
-    if (error) {
-      console.error('Error fetching players:', error);
-      return;
-    }
-    
-    if (players) {
-      console.log('Players refreshed:', players);
-      gameState.update(state => ({
-        ...state,
-        players: players.map(p => ({
-          id: p.id,
-          name: p.name,
-          voted: p.voted
-        }))
-      }));
-    }
-  }
-
-  async function refreshVotes() {
-    const { data: votes, error } = await supabase
-      .from('votes')
-      .select('*')
-      .eq('game_id', gameId);
-    
-    if (error) {
-      console.error('Error fetching votes:', error);
-      return;
-    }
-    
-    if (votes) {
-      console.log('Votes refreshed:', votes);
-      const votesMap: Record<string, VoteValue> = {};
       
+      // Presence handlers
+      onPlayerJoin: async ({ newPresences }) => {
+        console.log('Players joined:', newPresences);
+        await refreshAllGameData();
+      },
+      
+      onPlayerLeave: async ({ leftPresences }) => {
+        console.log('Players left:', leftPresences);
+        // Remove players who left
+        if (leftPresences && leftPresences.length > 0) {
+          leftPresences.forEach(async (presence) => {
+            try {
+              // Delete player record
+              await supabase
+                .from('players')
+                .delete()
+                .eq('id', presence.key);
+              
+              // Delete vote record  
+              await supabase
+                .from('votes')
+                .delete()
+                .eq('player_id', presence.key);
+            } catch (error) {
+              console.error('Error removing player:', error);
+            }
+          });
+        }
+      },
+      
+      // Broadcast event handlers
+      onVote: (payload) => {
+        updateVote(payload.payload.playerId, payload.payload.value);
+      },
+      
+      onStoryUpdate: (payload) => {
+        updateStory(payload.payload.story);
+      },
+      
+      onReveal: () => {
+        revealVotes();
+      },
+      
+      onResetVotes: () => {
+        refreshAllGameData();
+      },
+      
+      // Postgres changes handlers
+      onPlayerChange: async () => {
+        await refreshAllGameData();
+      },
+      
+      onVoteChange: async () => {
+        await refreshAllGameData();
+      },
+      
+      onGameChange: async () => {
+        await refreshAllGameData();
+      }
+    });
+  }
+
+  // Optimized function to refresh all game data in one update
+  async function refreshAllGameData() {
+    try {
+      const [playersResult, votesResult, gameResult] = await Promise.all([
+        supabase.from('players').select('*').eq('game_id', gameId),
+        supabase.from('votes').select('*').eq('game_id', gameId),
+        supabase.from('games').select('*').eq('id', gameId).single()
+      ]);
+      
+      // Check for errors
+      if (playersResult.error) console.error('Error fetching players:', playersResult.error);
+      if (votesResult.error) console.error('Error fetching votes:', votesResult.error);
+      if (gameResult.error) console.error('Error fetching game:', gameResult.error);
+      
+      // Prepare data
+      const players = playersResult.data || [];
+      const votes = votesResult.data || [];
+      const game = gameResult.data;
+      
+      // Process votes
+      const votesMap: Record<string, VoteValue> = {};
       votes.forEach(v => {
         votesMap[v.player_id] = v.value;
       });
       
       const allVoted = votes.length > 0 && votes.every(v => v.value !== null);
       
+      // Update state in a single operation to avoid multiple redraws
       gameState.update(state => ({
         ...state,
+        // Players data
+        players: players.map(p => ({
+          id: p.id,
+          name: p.name,
+          voted: p.voted
+        })),
+        // Votes data
         votes: votesMap,
-        allVoted
+        allVoted,
+        // Game data (if available)
+        ...(game ? {
+          currentStory: game.current_story,
+          revealed: game.revealed
+        } : {})
       }));
-    }
-  }
-
-  async function refreshGameState() {
-    const { data: game, error } = await supabase
-      .from('games')
-      .select('*')
-      .eq('id', gameId)
-      .single();
-    
-    if (error) {
-      console.error('Error fetching game state:', error);
-      return;
-    }
-    
-    if (game) {
-      console.log('Game state refreshed:', game);
-      gameState.update(state => ({
-        ...state,
-        currentStory: game.current_story,
-        revealed: game.revealed
-      }));
+    } catch (error) {
+      console.error('Error refreshing all game data:', error);
     }
   }
 
@@ -304,7 +259,7 @@ export function createGameStore(gameId: string, playerName: string) {
       });
       
       // Refresh votes to update local state
-      await refreshVotes();
+      await refreshAllGameData();
       
       // Check if all players have voted and automatically reveal if so
       const { data: allPlayers } = await supabase
@@ -392,7 +347,7 @@ export function createGameStore(gameId: string, playerName: string) {
         };
       });
       
-      // Broadcast the story update event (other clients react to this or DB changes)
+      // Broadcast the story update event and vote reset events
       const channel = supabase.channel(`game:${gameId}`);
       
       // Broadcast a specific reset_votes event to ensure all clients update player status
@@ -429,17 +384,16 @@ export function createGameStore(gameId: string, playerName: string) {
         .delete()
         .eq('player_id', playerId);
       
-      // Leave the channel
-      supabase.channel(`game:${gameId}`).unsubscribe();
+      // Clean up the realtime channel
+      if (gameChannel) {
+        unsubscribeFromChannel(gameChannel);
+        gameChannel = null;
+      }
     } catch (error) {
       console.error('Error leaving game:', error);
     }
   }
   
-  /**
-   * Reset all votes for the current game
-   * This should be called when starting a new story
-   */
   async function resetVotes() {
     try {
       // First update the game state to set revealed to false
@@ -489,7 +443,19 @@ export function createGameStore(gameId: string, playerName: string) {
     }
   }
   
-  // Initialize
+  /**
+   * Prepare the store for a reset operation
+   * This optimizes the state transition
+   */
+  function prepareForReset() {
+    // Immediately update local state to prevent UI flashing
+    gameState.update(state => ({
+      ...state,
+      revealed: false,
+      allVoted: false
+    }));
+  }
+  
   initializeGame();
   
   return {
@@ -503,6 +469,7 @@ export function createGameStore(gameId: string, playerName: string) {
     reveal,
     setStory,
     leaveGame,
-    resetVotes
+    resetVotes,
+    prepareForReset
   };
 } 

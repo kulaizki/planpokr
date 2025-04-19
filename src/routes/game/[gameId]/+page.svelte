@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { onMount, onDestroy } from 'svelte';
-	import { writable, type Writable } from 'svelte/store';
+	import { writable, type Writable, derived } from 'svelte/store';
 	import { PlayerList, StoryArea, VotingArea, ConnectionStatus } from '$lib/components';
 	import { createGameStore } from '$lib/stores/gameStore';
 	import { copyGameLink, handleNextStory, handleSetStory, handleVote, initializeGame } from '$lib/services/game.service';
@@ -11,12 +11,15 @@
 	// Get the game ID from the route parameters
 	const gameId = $page.params.gameId;
 	
+	// State variables
 	let nameInput = '';
 	let storyInput = '';
 	let copyButtonText = 'Copy Invite Link';
 	let hasJoined = false;
-	let wasRevealed = false; 
+	let wasRevealed = false;
+	let isResetting = false; 
 	
+	// Default empty state ensures gameState is always a valid GameState object
 	const emptyGameState: GameState = {
 		id: null,
 		players: [],
@@ -31,7 +34,7 @@
 	// Initialize reactive stores - start with null, will be populated once the game is joined
 	let gameStore: ReturnType<typeof createGameStore> | null = null;
 	let currentVote: Writable<VoteValue> = writable(null);
-	let status: Writable<ConnectionStatusType> = writable('connecting'); // Initialize with a default store
+	let status: Writable<ConnectionStatusType> = writable('connecting');
 	let gameStateStore: Writable<GameState> = writable(emptyGameState);
 	let unsubscribeFromGame: (() => void) | null = null;
 	
@@ -41,10 +44,16 @@
 	$: playersCount = gameState.players.length;
 	$: currentVoteValue = $currentVote;
 	$: canReveal = Object.keys(gameState.votes).length > 0;
-
-	// Only reset vote selection when a new story starts or when transitioning from revealed to non-revealed state
+	
+	// Only show voting area when we have a non-empty story that's not the default message
+	// and we're not currently resetting
+	$: shouldShowVoting = !isResetting && 
+						  gameState.currentStory !== '' && 
+						  gameState.currentStory !== 'No story set yet.';
+	
+	// Watch for changes to currentStory
 	$: {
-		// If story is cleared, reset vote
+		// If currentStory is empty, we're either in initial state or resetting
 		if (gameState.currentStory === '') {
 			currentVote.set(null);
 		}
@@ -86,16 +95,29 @@
 
 	// Handle setting a new story
 	function onSetStory(): void {
-		if (gameStore) {
+		if (gameStore && storyInput.trim()) {
+			// Set resetting flag to prevent UI flashing
+			isResetting = true;
 			storyInput = handleSetStory(gameStore, storyInput);
+			
+			// Small delay to ensure state is fully updated
+			setTimeout(() => {
+				isResetting = false;
+			}, 150);
 		}
 	}
 
 	// Handle moving to the next story
 	function onNextStory(): void {
 		if (gameStore) {
+			// Set resetting flag to prevent UI flashing
+			isResetting = true;
 			storyInput = handleNextStory(gameStore);
-			// Vote reset is now handled by the reactive block above
+			
+			// Small delay to ensure state is fully updated
+			setTimeout(() => {
+				isResetting = false;
+			}, 150);
 		}
 	}
 
@@ -165,7 +187,7 @@
 				/>
 			</div>
 			
-			{#if gameState.currentStory}
+			{#if shouldShowVoting}
 				<VotingArea
 					revealed={gameState.revealed}
 					votes={gameState.votes}

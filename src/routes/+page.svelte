@@ -6,6 +6,16 @@
 	/>
 </svelte:head>
 
+<script lang="ts">
+	import { goto } from '$app/navigation';
+
+	function createGame() {
+		// Generate a simple unique-ish ID
+		const gameId = `game_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
+		goto(`/game/${gameId}`);
+	}
+</script>
+
 <section class="container mx-auto grid items-center gap-10 px-4 py-12 sm:px-6 md:py-20 lg:px-8 lg:py-24">
 	<div class="flex max-w-[980px] flex-col items-start gap-4">
 		<h1
@@ -19,12 +29,12 @@
 		</p>
 	</div>
 	<div class="flex flex-col gap-4 sm:flex-row">
-		<a
-			href="/create-game"
+		<button
+			on:click={createGame}
 			class="inline-flex h-11 items-center justify-center whitespace-nowrap rounded-md bg-blue-600 px-8 text-base font-semibold text-white ring-offset-gray-900 transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
 		>
 			Start New Game
-		</a>
+		</button>
 		<a
 			href="/learn-more"
 			class="inline-flex h-11 items-center justify-center whitespace-nowrap rounded-md border border-gray-600 bg-transparent px-8 text-base font-medium text-gray-300 ring-offset-gray-900 transition-colors hover:border-gray-500 hover:bg-gray-800 hover:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
