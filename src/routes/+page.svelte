@@ -46,7 +46,7 @@
 			} else {
 				show = true; 
 			}
-		}, 50); 
+		}, 300); 
 	});
 </script>
 
