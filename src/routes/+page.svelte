@@ -73,7 +73,7 @@
 					Start New Game
 				</button>
 				<a
-					href="/learn-more"
+					href="/about"
 					class="inline-flex h-11 w-full sm:w-auto items-center justify-center rounded-md border border-gray-600 bg-transparent px-8 text-base font-medium whitespace-nowrap text-gray-300 ring-offset-gray-900 transition-colors hover:border-gray-500 hover:bg-gray-800 hover:text-gray-100 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
 				>
 					Learn More
