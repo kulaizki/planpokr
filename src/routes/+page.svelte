@@ -24,15 +24,13 @@
 		easing: (t: number) => number;
 		css: (t: number) => string;
 	} {
-		const existingTransform = getComputedStyle(node).transform.replace('none', '');
 		return {
 			delay: params.delay || 0,
 			duration: params.duration || 1000,
 			easing: params.easing || cubicOut,
 			css: (t: number) => `
-        transform: ${existingTransform} translateY(${(1 - t) * 100}px);
         opacity: ${t};
-        filter: blur(${(1 - t) * 10}px);
+        filter: blur(${(1 - t) * 5}px);
       `
 		};
 	}
@@ -53,7 +51,7 @@
 {#if show}
 	<section
 		class="container mx-auto flex flex-col md:flex-row items-center justify-between gap-10 px-4 py-6 sm:px-6 md:py-10 lg:px-8 lg:py-12"
-		transition:blurFly
+		in:blurFly
 	>
 		<div class="flex flex-col items-center text-center md:items-start md:text-left gap-4 md:max-w-[50%]">
 			<h1

@@ -23,9 +23,9 @@
 			duration: params.duration || 1000,
 			easing: params.easing || cubicOut,
 			css: (t: number) => `
-        transform: ${existingTransform} translateY(${(1 - t) * 100}px);
+        transform: ${existingTransform} translateY(${(1 - t) * 30}px);
         opacity: ${t};
-        filter: blur(${(1 - t) * 10}px);
+        filter: blur(${(1 - t) * 5}px);
       `
 		};
 	}

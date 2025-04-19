@@ -23,9 +23,9 @@
 			duration: params.duration || 1000,
 			easing: params.easing || cubicOut,
 			css: (t: number) => `
-        transform: ${existingTransform} translateY(${(1 - t) * 100}px);
+        transform: ${existingTransform} translateY(${(1 - t) * 30}px);
         opacity: ${t};
-        filter: blur(${(1 - t) * 10}px);
+        filter: blur(${(1 - t) * 5}px);
       `
 		};
 	}
@@ -43,9 +43,10 @@
 	/>
 </svelte:head>
 
+{#if show}
 <section
 	class="container mx-auto max-w-3xl px-4 py-12 sm:px-6 md:py-20 lg:px-8 lg:py-24"
-	transition:blurFly
+	in:blurFly
 >
 	<div class="space-y-8 text-gray-200">
 		<h1 class="text-4xl font-extrabold tracking-tight text-gray-100 sm:text-5xl md:text-6xl">
@@ -78,3 +79,4 @@
 		</p>
 	</div>
 </section>
+{/if}
