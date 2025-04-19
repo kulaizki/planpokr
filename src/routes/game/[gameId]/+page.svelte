@@ -11,13 +11,12 @@
 	// Get the game ID from the route parameters
 	const gameId = $page.params.gameId;
 	
-	// State variables
 	let nameInput = '';
 	let storyInput = '';
 	let copyButtonText = 'Copy Invite Link';
 	let hasJoined = false;
+	let wasRevealed = false; 
 	
-	// Default empty state ensures gameState is always a valid GameState object
 	const emptyGameState: GameState = {
 		id: null,
 		players: [],
@@ -43,9 +42,18 @@
 	$: currentVoteValue = $currentVote;
 	$: canReveal = Object.keys(gameState.votes).length > 0;
 
-	// Reset vote selection when a new story starts or votes are revealed
-	$: if (gameState.currentStory === '' || gameState.revealed === false) {
-		currentVote.set(null);
+	// Only reset vote selection when a new story starts or when transitioning from revealed to non-revealed state
+	$: {
+		// If story is cleared, reset vote
+		if (gameState.currentStory === '') {
+			currentVote.set(null);
+		}
+		// If we're coming from a revealed state to a non-revealed state (new round)
+		else if (wasRevealed && !gameState.revealed) {
+			currentVote.set(null);
+		}
+		// Update the wasRevealed tracker
+		wasRevealed = gameState.revealed;
 	}
 
 	// Join the game with the provided name
@@ -87,8 +95,7 @@
 	function onNextStory(): void {
 		if (gameStore) {
 			storyInput = handleNextStory(gameStore);
-			// Reset the current vote when moving to a new story
-			currentVote.set(null);
+			// Vote reset is now handled by the reactive block above
 		}
 	}
 
