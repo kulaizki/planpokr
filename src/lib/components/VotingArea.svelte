@@ -9,14 +9,12 @@
 	export let onVote: (vote: string | number) => void;
 	export let onNextStory: () => void;
 	
-	// Default Fibonacci deck
-	const cardDeck = [0, 1, 2, 3, 5, 8, 13, 21, 34, '∞', '?'];
+	const cardDeck = [0, 1, 2, 3, 5, 8, 13, 21, 34];
 </script>
 
 <div class="rounded-lg border border-gray-700 bg-gray-800 p-6 text-center shadow">
 	{#if revealed}
 		<h2 class="mb-4 text-lg font-semibold text-gray-200">Votes Revealed!</h2>
-		<!-- Basic Result Display -->
 		<div class="flex flex-wrap justify-center gap-4">
 			{#each Object.entries(votes) as [playerId, vote] (playerId)}
 				{@const player = players.find(p => p.id === playerId)}
