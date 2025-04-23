@@ -10,12 +10,32 @@
 	export let onNextStory: () => void;
 	
 	const cardDeck = [0, 1, 2, 3, 5, 8, 13, 21, 34];
+
+	// Reactive calculation for average vote
+	$: averageVote = (() => {
+		if (!revealed || Object.keys(votes).length === 0) {
+			return null;
+		}
+		
+		const numericVotes = Object.values(votes)
+			.map(vote => typeof vote === 'number' ? vote : parseFloat(String(vote)))
+			.filter(vote => !isNaN(vote));
+			
+		if (numericVotes.length === 0) {
+			return 'N/A'; 
+		}
+		
+		const sum = numericVotes.reduce((acc, vote) => acc + vote, 0);
+		return (sum / numericVotes.length).toFixed(1); 
+	})();
 </script>
 
 <div class="rounded-lg border border-gray-700 bg-gray-800 p-6 text-center shadow">
 	{#if revealed}
 		<h2 class="mb-4 text-lg font-semibold text-gray-200">Votes Revealed!</h2>
-		<div class="flex flex-wrap justify-center gap-4">
+		
+		<!-- Vote Results -->
+		<div class="mb-6 flex flex-wrap justify-center gap-4">
 			{#each Object.entries(votes) as [playerId, vote] (playerId)}
 				{@const player = players.find(p => p.id === playerId)}
 				<div class="flex flex-col items-center">
@@ -26,9 +46,19 @@
 				</div>
 			{/each}
 		</div>
-		<button on:click={onNextStory} class="mt-6 rounded bg-purple-600 px-6 py-2 font-medium text-white hover:bg-purple-700 hover:cursor-pointer transition-colors">
-			Start Next Story / Reset Votes
-		</button>
+		
+		{#if averageVote !== null}
+			<div class="mt-6 rounded-lg bg-gray-700 p-4 inline-block">
+				<span class="text-sm font-medium uppercase tracking-wider text-gray-400">Average Estimate</span>
+				<p class="text-3xl font-bold text-blue-500">{averageVote}</p>
+			</div>
+		{/if}
+		
+		<div class="mt-8">
+			<button on:click={onNextStory} class="rounded bg-purple-600 px-8 py-2.5 font-semibold text-white hover:bg-purple-700 hover:cursor-pointer transition-colors">
+				Start Next Story / Reset Votes
+			</button>
+		</div>
 	{:else}
 		<h2 class="mb-6 text-lg font-semibold text-gray-200">Choose your estimate:</h2>
 		<div class="flex flex-wrap justify-center gap-3 sm:gap-4">
