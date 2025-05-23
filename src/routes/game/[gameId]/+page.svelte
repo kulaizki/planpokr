@@ -131,9 +131,9 @@
 	<title>Game: {gameId || 'Loading...'} - PlanPokr</title>
 </svelte:head>
 
-<div class="container mx-auto p-4 max-w-4xl">
+<div class="container mx-auto p-4 max-w-4xl {!hasJoined ? 'flex flex-col justify-center items-center flex-grow min-h-[calc(100vh_-_10rem)]' : ''}">
 	{#if !hasJoined}
-		<div class="join-card mx-auto max-w-md p-8 bg-gray-800 rounded-lg shadow-md border border-gray-700">
+		<div class="join-card w-full max-w-md p-8 bg-gray-800 rounded-lg shadow-md border border-gray-700">
 			<h2 class="text-2xl font-bold mb-6 text-center text-white">Join Planning Poker</h2>
 			<form on:submit|preventDefault={joinGame} class="flex flex-col gap-4">
 				<input 
