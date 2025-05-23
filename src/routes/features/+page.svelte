@@ -1,8 +1,36 @@
 <script lang="ts">
 	import { cubicOut } from 'svelte/easing';
 	import { onMount } from 'svelte';
+	import FeatureCard from '$lib/components/FeatureCard.svelte';
 
 	let show: boolean = false;
+
+	const features = [
+		{
+			title: 'Real-time Updates',
+			description: "See everyone's votes and status changes instantly. No more waiting or refreshing."
+		},
+		{
+			title: 'Quick Start & Share',
+			description: 'No login needed! Just create a game and easily share the unique link to start estimating immediately.'
+		},
+		{
+			title: 'Automatic Vote Reveal',
+			description: 'Votes stay hidden until everyone on the team has submitted their estimate, then revealed automatically.'
+		},
+		{
+			title: 'Easy Story Management',
+			description: "Quickly set the current story you're estimating, and reset for the next one with a single click."
+		},
+		{
+			title: 'Works Everywhere',
+			description: 'PlanPokr is fully responsive, providing a seamless experience on desktops, tablets, and phones.'
+		},
+		{
+			title: "See Who's Online",
+			description: "Quickly see who has joined the session and whether they've cast their vote yet."
+		}
+	];
 
 	function blurFly(
 		node: HTMLElement,
@@ -56,93 +84,9 @@
 			</h1>
 
 			<div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-				<!-- Feature 1 -->
-				<div
-					class="group rounded-lg border border-gray-700 bg-gray-800 p-6 shadow-lg transition-all duration-300 ease-in-out hover:scale-105 hover:border-blue-500 hover:bg-gray-700 hover:shadow-blue-500/30"
-				>
-					<h3
-						class="mb-3 text-xl font-semibold text-gray-100 transition-colors duration-300 group-hover:text-blue-400"
-					>
-						Real-time Updates
-					</h3>
-					<p class="text-gray-300">
-						See everyone's votes and status changes instantly. No more waiting or refreshing.
-					</p>
-				</div>
-
-				<!-- Feature 2 -->
-				<div
-					class="group rounded-lg border border-gray-700 bg-gray-800 p-6 shadow-lg transition-all duration-300 ease-in-out hover:scale-105 hover:border-blue-500 hover:bg-gray-700 hover:shadow-blue-500/30"
-				>
-					<h3
-						class="mb-3 text-xl font-semibold text-gray-100 transition-colors duration-300 group-hover:text-blue-400"
-					>
-						Quick Start & Share
-					</h3>
-					<p class="text-gray-300">
-						No login needed! Just create a game and easily share the unique link to start estimating
-						immediately.
-					</p>
-				</div>
-
-				<!-- Feature 3 -->
-				<div
-					class="group rounded-lg border border-gray-700 bg-gray-800 p-6 shadow-lg transition-all duration-300 ease-in-out hover:scale-105 hover:border-blue-500 hover:bg-gray-700 hover:shadow-blue-500/30"
-				>
-					<h3
-						class="mb-3 text-xl font-semibold text-gray-100 transition-colors duration-300 group-hover:text-blue-400"
-					>
-						Automatic Vote Reveal
-					</h3>
-					<p class="text-gray-300">
-						Votes stay hidden until everyone on the team has submitted their estimate, then revealed
-						automatically.
-					</p>
-				</div>
-
-				<!-- Feature 4 -->
-				<div
-					class="group rounded-lg border border-gray-700 bg-gray-800 p-6 shadow-lg transition-all duration-300 ease-in-out hover:scale-105 hover:border-blue-500 hover:bg-gray-700 hover:shadow-blue-500/30"
-				>
-					<h3
-						class="mb-3 text-xl font-semibold text-gray-100 transition-colors duration-300 group-hover:text-blue-400"
-					>
-						Easy Story Management
-					</h3>
-					<p class="text-gray-300">
-						Quickly set the current story you're estimating, and reset for the next one with a
-						single click.
-					</p>
-				</div>
-
-				<!-- Feature 5 -->
-				<div
-					class="group rounded-lg border border-gray-700 bg-gray-800 p-6 shadow-lg transition-all duration-300 ease-in-out hover:scale-105 hover:border-blue-500 hover:bg-gray-700 hover:shadow-blue-500/30"
-				>
-					<h3
-						class="mb-3 text-xl font-semibold text-gray-100 transition-colors duration-300 group-hover:text-blue-400"
-					>
-						Works Everywhere
-					</h3>
-					<p class="text-gray-300">
-						PlanPokr is fully responsive, providing a seamless experience on desktops, tablets, and
-						phones.
-					</p>
-				</div>
-
-				<!-- Feature 6 -->
-				<div
-					class="group rounded-lg border border-gray-700 bg-gray-800 p-6 shadow-lg transition-all duration-300 ease-in-out hover:scale-105 hover:border-blue-500 hover:bg-gray-700 hover:shadow-blue-500/30"
-				>
-					<h3
-						class="mb-3 text-xl font-semibold text-gray-100 transition-colors duration-300 group-hover:text-blue-400"
-					>
-						See Who's Online
-					</h3>
-					<p class="text-gray-300">
-						Quickly see who has joined the session and whether they've cast their vote yet.
-					</p>
-				</div>
+				{#each features as feature (feature.title)}
+					<FeatureCard title={feature.title} description={feature.description} />
+				{/each}
 			</div>
 		</div>
 	</section>
