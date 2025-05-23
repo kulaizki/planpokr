@@ -7,7 +7,7 @@
 
 <div class="relative flex min-h-dvh flex-col bg-background">
 	<Header />
-	<main class="flex-1">
+	<main class="flex-1 flex flex-col">
 		<slot />
 	</main>
 	<Footer />

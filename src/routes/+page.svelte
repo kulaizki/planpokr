@@ -81,7 +81,7 @@
 </style>
 
 <section
-	class="container mx-auto flex flex-col md:flex-row items-center justify-between gap-10 px-4 py-6 sm:px-6 md:py-10 lg:px-8 lg:py-12"
+	class="container mx-auto flex flex-col flex-grow md:flex-row items-center justify-center md:justify-between gap-10 px-4 py-6 sm:px-6 md:py-10 lg:px-8 lg:py-12"
 >
 	<div class="flex flex-col items-center text-center md:items-start md:text-left gap-4 md:max-w-[50%]">
 		<h1
@@ -108,7 +108,7 @@
 			</a>
 		</div>
 	</div>
-	<div class="w-full md:w-[45%] flex items-center justify-center">
+	<div class="w-full md:w-[45%] hidden md:flex items-center justify-center">
 		<img 
 			src="/blue-chips.png" 
 			alt="Planning poker blue chips" 
